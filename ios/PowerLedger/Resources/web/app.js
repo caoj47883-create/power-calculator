@@ -87,6 +87,7 @@
   var heroOverview = document.getElementById('heroOverview');
   var legendButtons = Array.prototype.slice.call(document.querySelectorAll('.legend-item[data-go-tab]'));
   var tabButtons = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  var tabbar = document.querySelector('.tabbar');
 
   function loadState() {
     try {
@@ -494,6 +495,19 @@
       '</button>';
   }
 
+  function fixedValueMarkup(kind, key, field, value, unit, min, max, label) {
+    var id = kind === 'device'
+      ? (field === 'capacity' ? 'device-cap-number-' : 'device-power-number-') + key
+      : 'appliance-power-number-' + key;
+    return '<span class="fixed-value">' +
+      '<input class="fixed-number" id="' + id + '" type="number" inputmode="numeric" autocomplete="off" ' +
+        'min="' + min + '" max="' + max + '" step="1" value="' + value + '" ' +
+        'data-fixed-number="true" data-fixed-kind="' + kind + '" data-fixed-key="' + key + '" data-fixed-field="' + field + '" ' +
+        'aria-label="' + label + '，可直接输入固定值，单位' + unit + '" title="可直接输入固定值；换日不变">' +
+      '<span class="fixed-unit">' + unit + '</span>' +
+    '</span>';
+  }
+
   function deviceCardMarkup(key) {
     var def = Model.MODEL.devices[key];
     var values = state.devices[key];
@@ -513,8 +527,8 @@
     if (def.mode === 'power') {
       controls += '' +
         '<div class="slider-head device-slider-head">' +
-          '<label class="slider-label" for="device-power-' + key + '">主机功率</label>' +
-          '<output class="slider-output" for="device-power-' + key + '" id="device-power-out-' + key + '">' + formatInteger(values.watts) + ' W</output>' +
+          '<label class="slider-label" for="device-power-' + key + '">主机功率 <span class="fixed-tag">固定值</span></label>' +
+          fixedValueMarkup('device', key, 'watts', values.watts, 'W', def.powerMin, def.powerMax, def.name + '主机功率') +
         '</div>' +
         '<input class="range" id="device-power-' + key + '" type="range" min="' + def.powerMin + '" max="' + def.powerMax + '" step="' + def.powerStep + '" value="' + values.watts + '" data-device-power="' + key + '" aria-label="' + def.name + '功率，单位瓦">' +
         '<div class="range-ends"><span>' + def.powerMin + ' W</span><span>' + def.powerMax + ' W</span></div>' +
@@ -528,8 +542,8 @@
     } else {
       controls += '' +
         '<div class="slider-head device-slider-head">' +
-          '<label class="slider-label" for="device-cap-' + key + '">电池容量</label>' +
-          '<output class="slider-output" for="device-cap-' + key + '" id="device-cap-out-' + key + '">' + formatInteger(values.capacity) + ' ' + def.unit + '</output>' +
+          '<label class="slider-label" for="device-cap-' + key + '">电池容量 <span class="fixed-tag">固定值</span></label>' +
+          fixedValueMarkup('device', key, 'capacity', values.capacity, def.unit, def.capacityMin, def.capacityMax, def.name + '电池容量') +
         '</div>' +
         '<input class="range" id="device-cap-' + key + '" type="range" min="' + def.capacityMin + '" max="' + def.capacityMax + '" step="' + def.capacityStep + '" value="' + values.capacity + '" data-device-capacity="' + key + '" aria-label="' + def.name + '电池容量，单位' + (def.unit === 'Wh' ? '瓦时' : '毫安时') + '">' +
         '<div class="range-ends"><span>' + formatInteger(def.capacityMin) + ' ' + def.unit + '</span><span>' + formatInteger(def.capacityMax) + ' ' + def.unit + '</span></div>' +
@@ -568,8 +582,8 @@
             itemToggleMarkup('appliance', key, enabled, def.name) +
           '</div>' +
           '<div class="slider-head device-slider-head">' +
-            '<label class="slider-label" for="appliance-power-' + key + '">电器功率</label>' +
-            '<output class="slider-output" for="appliance-power-' + key + '" id="appliance-power-out-' + key + '">' + formatInteger(values.watts) + ' W</output>' +
+            '<label class="slider-label" for="appliance-power-' + key + '">电器功率 <span class="fixed-tag">固定值</span></label>' +
+            fixedValueMarkup('appliance', key, 'watts', values.watts, 'W', def.powerMin, def.powerMax, def.name + '功率') +
           '</div>' +
           '<input class="range" id="appliance-power-' + key + '" type="range" min="' + def.powerMin + '" max="' + def.powerMax + '" step="' + def.powerStep + '" value="' + values.watts + '" data-appliance-power="' + key + '" aria-label="' + def.name + '功率，单位瓦">' +
           '<div class="range-ends"><span>' + def.powerMin + ' W</span><span>' + def.powerMax + ' W</span></div>' +
@@ -715,11 +729,13 @@
   }
 
   function applyConfigLockState() {
-    if (state.configLocked !== true) return;
+    var locked = state.configLocked === true;
     Array.prototype.forEach.call(document.querySelectorAll(
-      '[data-device-capacity], [data-device-power], [data-appliance-power]'
+      '[data-device-capacity], [data-device-power], [data-appliance-power], [data-fixed-number]'
     ), function (control) {
-      control.disabled = true;
+      // Global config lock and per-card fixed state are independent; either
+      // one should freeze the fixed rating controls.
+      control.disabled = locked || !!(control.closest && control.closest('.is-fixed'));
     });
   }
 
@@ -811,10 +827,12 @@
       if (def.mode === 'power') {
         var powerInput = document.getElementById('device-power-' + key);
         var hoursInput = document.getElementById('device-hours-' + key);
+        var powerNumber = document.getElementById('device-power-number-' + key);
         if (powerInput) {
           powerInput.value = values.watts;
           setRangeFill(powerInput);
         }
+        if (powerNumber) powerNumber.value = values.watts;
         if (hoursInput) {
           hoursInput.value = values.hours;
           setRangeFill(hoursInput);
@@ -822,10 +840,12 @@
       } else {
         var capacityInput = document.getElementById('device-cap-' + key);
         var cyclesInput = document.getElementById('device-cycles-' + key);
+        var capacityNumber = document.getElementById('device-cap-number-' + key);
         if (capacityInput) {
           capacityInput.value = values.capacity;
           setRangeFill(capacityInput);
         }
+        if (capacityNumber) capacityNumber.value = values.capacity;
         if (cyclesInput) {
           cyclesInput.value = values.cycles;
           setRangeFill(cyclesInput);
@@ -839,10 +859,12 @@
       var values = state.appliances[key];
       var powerInput = document.getElementById('appliance-power-' + key);
       var hoursInput = document.getElementById('appliance-hours-' + key);
+      var powerNumber = document.getElementById('appliance-power-number-' + key);
       if (powerInput) {
         powerInput.value = values.watts;
         setRangeFill(powerInput);
       }
+      if (powerNumber) powerNumber.value = values.watts;
       if (hoursInput) {
         hoursInput.value = values.hours;
         setRangeFill(hoursInput);
@@ -892,6 +914,10 @@
       button.setAttribute('aria-selected', active ? 'true' : 'false');
       button.setAttribute('tabindex', active ? '0' : '-1');
     });
+    if (tabbar) {
+      tabbar.style.setProperty('--tab-index', Math.max(0, TABS.indexOf(tab)));
+      tabbar.classList.remove('is-compact');
+    }
 
     TABS.forEach(function (key) {
       var panel = document.getElementById('panel-' + key);
@@ -906,7 +932,10 @@
       button.classList.toggle('is-active', button.getAttribute('data-go-tab') === tab);
     });
 
-    if (changed || (options && options.resetScroll)) stage.scrollTop = 0;
+    if (changed || (options && options.resetScroll)) {
+      stage.scrollTop = 0;
+      if (tabbar) tabbar.classList.remove('is-compact');
+    }
 
     if (!latestData) latestData = Model.calc(state);
     updateHero(latestData);
@@ -987,8 +1016,10 @@
         var powerInput = document.getElementById('device-power-' + item.key);
         var hoursInput = document.getElementById('device-hours-' + item.key);
         var powerOut = document.getElementById('device-power-out-' + item.key);
+        var powerNumber = document.getElementById('device-power-number-' + item.key);
         var hoursOut = document.getElementById('device-hours-out-' + item.key);
         if (powerOut) powerOut.textContent = formatInteger(item.watts) + ' W';
+        if (powerNumber && document.activeElement !== powerNumber) powerNumber.value = item.watts;
         if (hoursOut) hoursOut.textContent = formatCycles(item.hours) + ' 小时';
         if (card) card.classList.toggle('is-off', !item.enabled);
         if (powerInput) {
@@ -1005,9 +1036,11 @@
         var capacityInput = document.getElementById('device-cap-' + item.key);
         var cyclesInput = document.getElementById('device-cycles-' + item.key);
         var capacityOut = document.getElementById('device-cap-out-' + item.key);
+        var capacityNumber = document.getElementById('device-cap-number-' + item.key);
         var cyclesOut = document.getElementById('device-cycles-out-' + item.key);
         var perChargeEl = document.querySelector('[data-device-per-charge="' + item.key + '"]');
         if (capacityOut) capacityOut.textContent = formatInteger(item.capacity) + ' ' + item.capacityUnit;
+        if (capacityNumber && document.activeElement !== capacityNumber) capacityNumber.value = item.capacity;
         if (cyclesOut) cyclesOut.textContent = formatCycles(item.cycles) + ' 次';
         if (perChargeEl) perChargeEl.textContent = '每次 ' + item.wallWhPerCharge.toFixed(1) + ' Wh';
         if (card) card.classList.toggle('is-off', !item.enabled);
@@ -1031,10 +1064,12 @@
       var powerInput = document.getElementById('appliance-power-' + item.key);
       var hoursInput = document.getElementById('appliance-hours-' + item.key);
       var powerOut = document.getElementById('appliance-power-out-' + item.key);
+      var powerNumber = document.getElementById('appliance-power-number-' + item.key);
       var hoursOut = document.getElementById('appliance-hours-out-' + item.key);
       if (kwhEl) kwhEl.textContent = formatDeviceEnergy(item.kwh);
       if (avgEl) avgEl.textContent = '平均 ' + formatPower(item.averageW);
       if (powerOut) powerOut.textContent = formatInteger(item.watts) + ' W';
+      if (powerNumber && document.activeElement !== powerNumber) powerNumber.value = item.watts;
       if (hoursOut) hoursOut.textContent = formatCycles(item.hours) + ' 小时';
       setToggleState('appliance', item.key, item.enabled, item.name);
       if (card) card.classList.toggle('is-off', !item.enabled);
@@ -1190,6 +1225,41 @@
     saveState();
   }
 
+  function updateFixedNumber(input) {
+    var kind = input.getAttribute('data-fixed-kind');
+    var key = input.getAttribute('data-fixed-key');
+    var field = input.getAttribute('data-fixed-field');
+    var collection = kind === 'device' ? Model.MODEL.devices : Model.MODEL.appliances;
+    var stateCollection = kind === 'device' ? state.devices : state.appliances;
+    var def = collection && collection[key];
+    if (!def || !stateCollection || !stateCollection[key]) return;
+    var min = field === 'capacity' ? def.capacityMin : def.powerMin;
+    var max = field === 'capacity' ? def.capacityMax : def.powerMax;
+    var current = stateCollection[key][field];
+    var raw = input.value.trim();
+    var value = raw === '' ? current : Number(raw);
+    if (!isFinite(value)) value = current;
+    value = Math.round(clamp(value, min, max));
+    if (state.configLocked === true || input.disabled) {
+      input.value = current;
+      return;
+    }
+    var changed = value !== current;
+    stateCollection[key][field] = value;
+    input.value = value;
+    var rangeId = kind === 'device'
+      ? (field === 'capacity' ? 'device-cap-' : 'device-power-') + key
+      : 'appliance-power-' + key;
+    var range = document.getElementById(rangeId);
+    if (range) {
+      range.value = value;
+      setRangeFill(range);
+    }
+    render();
+    saveState();
+    if (changed) showToast('固定值已保存，换日不变');
+  }
+
   function handleInput(event) {
     var input = event.target;
     if (!input || !input.getAttribute) return;
@@ -1203,7 +1273,12 @@
 
   function handleChange(event) {
     var input = event.target;
-    if (!input || !input.getAttribute || !input.getAttribute('data-trip-number')) return;
+    if (!input || !input.getAttribute) return;
+    if (input.getAttribute('data-fixed-number')) {
+      updateFixedNumber(input);
+      return;
+    }
+    if (!input.getAttribute('data-trip-number')) return;
     input.value = state.trips[input.getAttribute('data-trip-number')];
     render();
   }
@@ -1461,10 +1536,72 @@
     return false;
   }
 
+  function bindLiquidInteractions() {
+    var selector = '.card, .device-card, .trip-card, .trip-input-card, .stat, .tip-card, .fixed-card, .history-card, .formula-card';
+    Array.prototype.forEach.call(document.querySelectorAll(selector), function (card) {
+      card.classList.add('liquid-card');
+    });
+    if (prefersReduced) return;
+
+    document.addEventListener('pointermove', function (event) {
+      if (event.pointerType === 'touch') return;
+      var card = event.target && event.target.closest ? event.target.closest('.liquid-card') : null;
+      if (!card) return;
+      var rect = card.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      var x = (event.clientX - rect.left) / rect.width * 100;
+      var y = (event.clientY - rect.top) / rect.height * 100;
+      card.style.setProperty('--liquid-x', x.toFixed(1) + '%');
+      card.style.setProperty('--liquid-y', y.toFixed(1) + '%');
+    }, { passive: true });
+
+    document.addEventListener('pointerdown', function (event) {
+      var card = event.target && event.target.closest ? event.target.closest('.liquid-card') : null;
+      if (card) card.classList.add('is-pressed');
+    }, { passive: true });
+
+    function releaseLiquidPress() {
+      Array.prototype.forEach.call(document.querySelectorAll('.liquid-card.is-pressed'), function (card) {
+        card.classList.remove('is-pressed');
+      });
+    }
+    document.addEventListener('pointerup', releaseLiquidPress, { passive: true });
+    document.addEventListener('pointercancel', releaseLiquidPress, { passive: true });
+
+    document.addEventListener('pointerout', function (event) {
+      var card = event.target && event.target.closest ? event.target.closest('.liquid-card') : null;
+      if (!card || card.contains(event.relatedTarget)) return;
+      card.style.removeProperty('--liquid-x');
+      card.style.removeProperty('--liquid-y');
+    }, { passive: true });
+  }
+
+  function bindDockDynamics() {
+    if (!tabbar) return;
+    var lastY = stage.scrollTop;
+    var ticking = false;
+    stage.addEventListener('scroll', function () {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(function () {
+        var y = stage.scrollTop;
+        if (y < 24 || y < lastY - 4) tabbar.classList.remove('is-compact');
+        else if (y > lastY + 8) tabbar.classList.add('is-compact');
+        lastY = y;
+        ticking = false;
+      });
+    }, { passive: true });
+  }
+
   function bindEvents() {
     document.addEventListener('input', handleInput);
     document.addEventListener('change', handleChange);
     document.addEventListener('click', handleDocumentClick);
+    document.addEventListener('focusin', function (event) {
+      if (event.target && event.target.matches && event.target.matches('[data-fixed-number]')) {
+        try { event.target.select(); } catch (error) { /* 部分 WebView 不支持 select */ }
+      }
+    });
     infoButton.addEventListener('click', openModal);
     closeInfoButton.addEventListener('click', closeModal);
     settingsButton.addEventListener('click', function () { openProfile('settings'); });
@@ -1477,6 +1614,11 @@
       tab.addEventListener('keydown', handleTabKeydown);
     });
     document.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' && event.target && event.target.matches && event.target.matches('[data-fixed-number]')) {
+        event.preventDefault();
+        event.target.blur();
+        return;
+      }
       if (event.key === 'Escape') {
         if (isProfileOpen) {
           event.preventDefault();
@@ -1529,6 +1671,8 @@
     applyTransitInputs();
     render();
     setTab(initialTab(), { resetScroll: true });
+    bindLiquidInteractions();
+    bindDockDynamics();
     bindEvents();
     applyItemCardLocks();
     applyConfigLockState();

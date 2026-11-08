@@ -336,9 +336,35 @@ try {
   result.cyclesEditable=!document.getElementById('device-cycles-phone').disabled;
   result.appliancePowerLocked=document.getElementById('appliance-power-fridge').disabled;
   result.applianceHoursEditable=!document.getElementById('appliance-hours-fridge').disabled;
+  result.fixedInputCount=document.querySelectorAll('[data-fixed-number]').length;
+  var fixedPhone=document.querySelector('[data-fixed-kind="device"][data-fixed-key="phone"][data-fixed-field="capacity"]');
+  var fixedFridge=document.querySelector('[data-fixed-kind="appliance"][data-fixed-key="fridge"][data-fixed-field="watts"]');
+  result.fixedCapacityLocked=fixedPhone.disabled;
+  result.fixedApplianceLocked=fixedFridge.disabled;
   configToggle.click();
   result.configOff=!PowerApp.getState().configLocked;
   result.capacityUnlocked=!document.getElementById('device-cap-phone').disabled;
+  result.fixedCapacityUnlocked=!fixedPhone.disabled;
+
+  fixedPhone.value='4321';
+  fixedPhone.dispatchEvent(new Event('change',{bubbles:true}));
+  result.manualPhoneCapacity=PowerApp.getState().devices.phone.capacity;
+  result.manualPhoneInput=fixedPhone.value;
+  var fixedDesktop=document.querySelector('[data-fixed-kind="device"][data-fixed-key="desktop"][data-fixed-field="watts"]');
+  fixedDesktop.value='437';
+  fixedDesktop.dispatchEvent(new Event('change',{bubbles:true}));
+  result.manualDesktopWatts=PowerApp.getState().devices.desktop.watts;
+  fixedFridge.value='73';
+  fixedFridge.dispatchEvent(new Event('change',{bubbles:true}));
+  result.manualFridgeWatts=PowerApp.getState().appliances.fridge.watts;
+
+  var nav=document.querySelector('.tabbar');
+  var navStyle=getComputedStyle(nav);
+  result.navPosition=navStyle.position;
+  result.navRadius=navStyle.borderRadius;
+  result.liquidCards=document.querySelectorAll('.liquid-card').length;
+  result.liquidBackdrop=(getComputedStyle(document.querySelector('.liquid-card')).backdropFilter||'').indexOf('blur')>=0;
+  q('resetButton').click();
   document.getElementById('closeProfileButton').click();
 
   result.profileStored=(JSON.parse(localStorage.getItem('powercalc.profile.v1')||'{}').complete===true);
@@ -387,10 +413,10 @@ try {
     s.configLocked=true;
     s.steps=12345;
     s.devices.phone.cycles=2;
-    s.devices.phone.capacity=4300;
-    s.devices.desktop.watts=440;
+    s.devices.phone.capacity=4321;
+    s.devices.desktop.watts=437;
     s.appliances.fridge.hours=5;
-    s.appliances.fridge.watts=70;
+    s.appliances.fridge.watts=73;
     s.trips.subway=50;
     localStorage.setItem('powercalc.state.v2',JSON.stringify(s));
   } catch (error) {}

@@ -2706,3 +2706,346 @@ input:focus-visible,
   .version { font-size: 9.5px; }
   .toast { font-size: 11px; }
 }
+
+/* ===== v2.2 liquid glass surface + floating dock ======================== */
+:root {
+  --glass-surface: rgba(255, 253, 248, 0.76);
+  --glass-border: rgba(255, 255, 255, 0.72);
+  --glass-rim: rgba(255, 255, 255, 0.94);
+  --glass-shadow: 0 18px 46px rgba(66, 47, 25, 0.10), 0 2px 8px rgba(66, 47, 25, 0.05);
+}
+
+/* A soft, slow-moving light layer behind the paper. It remains warm and
+   high-key; no black or neon states are introduced. */
+.ambient::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  pointer-events: none;
+  background:
+    radial-gradient(34% 28% at 22% 32%, rgba(var(--mood-rgb), 0.28), transparent 70%),
+    radial-gradient(30% 26% at 80% 70%, rgba(var(--blue-rgb), 0.10), transparent 72%);
+  filter: blur(18px);
+  animation: liquid-drift 22s ease-in-out infinite alternate;
+}
+
+@keyframes liquid-drift {
+  from { transform: translate3d(-1.5%, 0, 0) scale(1); }
+  to { transform: translate3d(1.8%, -1.2%, 0) scale(1.03); }
+}
+
+/* Cards: translucent warm glass, a localized specular blob that follows the
+   pointer, and a springy press state. The content remains fully readable
+   because the base layer is opaque enough and text stays above the sheen. */
+.liquid-card {
+  position: relative;
+  border-color: var(--glass-border);
+  background:
+    radial-gradient(115% 90% at 0% 0%, rgba(var(--accent-rgb), 0.055), transparent 54%),
+    linear-gradient(142deg, rgba(255, 255, 255, 0.94), rgba(255, 251, 244, 0.84) 55%, rgba(255, 255, 255, 0.76));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -1px 0 rgba(var(--accent-rgb), 0.035),
+    0 16px 44px rgba(66, 47, 25, 0.095),
+    0 2px 7px rgba(66, 47, 25, 0.04);
+  -webkit-backdrop-filter: blur(24px) saturate(1.24);
+  backdrop-filter: blur(24px) saturate(1.24);
+  transition: transform 340ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 340ms ease, border-color 340ms ease;
+}
+
+.liquid-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(190px circle at var(--liquid-x, 16%) var(--liquid-y, 0%), rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.20) 45%, transparent 72%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 30%);
+  opacity: 0.78;
+  transition: opacity 260ms ease;
+}
+
+.liquid-card.is-pressed {
+  transform: scale(0.994);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    inset 0 -1px 0 rgba(var(--accent-rgb), 0.04),
+    0 8px 25px rgba(66, 47, 25, 0.11),
+    0 1px 4px rgba(66, 47, 25, 0.04);
+}
+
+/* The hero gets the same optical treatment without hiding its mood color. */
+.hero {
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 18px 50px rgba(66, 47, 25, 0.10),
+    0 2px 8px rgba(66, 47, 25, 0.04);
+  -webkit-backdrop-filter: blur(22px) saturate(1.16);
+  backdrop-filter: blur(22px) saturate(1.16);
+}
+
+/* Soft scrim so content passing under the floating glass dock fades out
+   instead of showing distracting fragments behind it. */
+.app::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  height: calc(88px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent, rgba(247, 244, 238, 0.72) 56%, rgba(247, 244, 238, 0.94));
+  pointer-events: none;
+}
+
+/* Floating dock. Kept inside .app so it stays centered above the app's
+   max-width, and the stage gets bottom padding to scroll clear of it. */
+.stage {
+  padding-bottom: calc(106px + env(safe-area-inset-bottom));
+}
+
+.tabbar {
+  position: absolute;
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 30;
+  width: calc(100% - 24px);
+  max-width: 430px;
+  height: 66px;
+  margin: 0;
+  padding: 5px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 27px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(255, 249, 240, 0.66));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    inset 0 -1px 0 rgba(86, 64, 36, 0.045),
+    0 18px 48px rgba(66, 47, 25, 0.17),
+    0 3px 10px rgba(66, 47, 25, 0.07);
+  -webkit-backdrop-filter: blur(26px) saturate(1.32);
+  backdrop-filter: blur(26px) saturate(1.32);
+  transform: translateX(-50%);
+  transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease, box-shadow 300ms ease;
+}
+
+.tabbar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14%;
+  right: 14%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.96), transparent);
+  pointer-events: none;
+}
+
+.tabbar.is-compact {
+  transform: translateX(-50%) translateY(3px) scale(0.968);
+  opacity: 0.93;
+}
+
+.tab-glider {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc((100% - 10px) / 4);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 22px;
+  background:
+    radial-gradient(120% 140% at 28% 10%, rgba(255, 255, 255, 0.95), rgba(255, 248, 237, 0.74) 58%, rgba(246, 238, 226, 0.60));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 4px 15px rgba(66, 47, 25, 0.09);
+  transform: translateX(calc(var(--tab-index, 0) * 100%));
+  transition: transform 560ms cubic-bezier(0.16, 1.22, 0.3, 1);
+  pointer-events: none;
+}
+
+.tab-glider::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 19px;
+  background: radial-gradient(75% 100% at 50% 0%, rgba(var(--blue-rgb), 0.10), transparent 72%);
+}
+
+.tabbar .tab {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: #9b9284;
+  cursor: pointer;
+  transition: color 220ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tabbar .tab:active {
+  background: transparent;
+  transform: scale(0.955);
+}
+
+.tabbar .tab:active .tab-icon {
+  transform: scale(0.86) translateY(1px);
+}
+
+.tabbar .tab.is-active {
+  color: var(--ink);
+  background: transparent;
+}
+
+.tabbar .tab.is-active .tab-icon .icon {
+  stroke-width: 2.2;
+}
+
+.tabbar .tab.is-active .tab-label {
+  font-weight: 750;
+}
+
+.tabbar .tab.is-active .tab-icon {
+  animation: dock-pop 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes dock-pop {
+  0% { transform: scale(0.82) translateY(2px); }
+  58% { transform: scale(1.09) translateY(-1px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+/* Hardware field for fixed ratings. */
+.fixed-value {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 34px;
+  padding: 3px 6px 3px 4px;
+  border: 1px dashed rgba(var(--accent-rgb), 0.24);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.52);
+  cursor: text;
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.fixed-value:focus-within {
+  border-color: rgba(var(--blue-rgb), 0.58);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 0 0 3px rgba(var(--blue-rgb), 0.09);
+}
+
+.fixed-number {
+  width: 53px;
+  height: 27px;
+  padding: 0 0 0 3px;
+  border: 0;
+  border-radius: 6px;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-weight: 750;
+  line-height: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+
+.fixed-number::-webkit-outer-spin-button,
+.fixed-number::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.fixed-number:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.fixed-unit {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.fixed-tag {
+  display: inline-block;
+  margin-left: 3px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(var(--accent-rgb), 0.10);
+  color: rgba(var(--accent-rgb), 0.78);
+  font-size: 8px;
+  font-weight: 650;
+  line-height: 1.35;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+
+.fixed-tag::before {
+  content: "◆";
+  margin-right: 2px;
+  font-size: 6px;
+  vertical-align: 1px;
+}
+
+.toast {
+  bottom: calc(102px + env(safe-area-inset-bottom));
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .liquid-card {
+    background: rgba(255, 253, 248, 0.94);
+  }
+  .tabbar {
+    background: rgba(255, 253, 248, 0.96);
+  }
+}
+
+@media (max-height: 700px) {
+  .tabbar {
+    height: 61px;
+    bottom: max(9px, env(safe-area-inset-bottom));
+  }
+  .tab-glider,
+  .tabbar .tab {
+    border-radius: 19px;
+  }
+  .stage {
+    padding-bottom: calc(94px + env(safe-area-inset-bottom));
+  }
+  .toast {
+    bottom: calc(90px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 350px) {
+  .fixed-number {
+    width: 45px;
+    font-size: 11px;
+  }
+  .fixed-tag {
+    display: none;
+  }
+  .tabbar {
+    width: calc(100% - 18px);
+  }
+}
+

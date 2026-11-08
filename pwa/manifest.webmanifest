@@ -1,7 +1,7 @@
 {
   "name": "功耗计算器 · Power Ledger",
   "short_name": "功耗计算器",
-  "description": "离线每日功耗账本：自体、设备、周边与出行。",
+  "description": "离线每日功耗账本：身体代谢、设备、家电、网络固定项与出行。",
   "lang": "zh-CN",
   "start_url": "./index.html",
   "scope": "./",

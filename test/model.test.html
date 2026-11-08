@@ -235,6 +235,19 @@
       equal(M.normalizeState({ configLocked: 'yes' }).configLocked, false, 'invalid config lock falls back');
       equal(M.normalizeState(null).configLocked, false, 'config lock defaults off');
 
+      var exactFixed = M.normalizeState({
+        devices: {
+          phone: { capacity: 4321 },
+          laptop: { capacity: 67 },
+          desktop: { watts: 437 }
+        },
+        appliances: { fridge: { watts: 73 } }
+      });
+      equal(exactFixed.devices.phone.capacity, 4321, 'manual phone capacity survives normalization');
+      equal(exactFixed.devices.laptop.capacity, 67, 'manual laptop Wh survives normalization');
+      equal(exactFixed.devices.desktop.watts, 437, 'manual desktop power survives normalization');
+      equal(exactFixed.appliances.fridge.watts, 73, 'manual appliance power survives normalization');
+
       var subwayShare = M.calc(M.DEFAULTS).transit.items[0];
       near(subwayShare.distanceKm, 17.5, 0.00001, '30 min subway distance');
       near(subwayShare.kwh, 1.05, 0.00001, '30 min subway energy');

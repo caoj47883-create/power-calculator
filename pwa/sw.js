@@ -1,5 +1,5 @@
-/* Power Ledger PWA service worker — v2.1.2 */
-var CACHE = 'powercalc-pwa-v2.1.2';
+/* Power Ledger PWA service worker — v2.2.0 */
+var CACHE = 'powercalc-pwa-v2.2.0';
 var ASSETS = ['./index.html','./styles.css','./app.js','./model.js','./manifest.webmanifest','./icons/icon-180.png','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install', function (event) { event.waitUntil(caches.open(CACHE).then(function (cache) { return cache.addAll(ASSETS); }).then(function () { return self.skipWaiting(); })); });
 self.addEventListener('activate', function (event) { event.waitUntil(caches.keys().then(function (keys) { return Promise.all(keys.map(function (key) { return key === CACHE ? null : caches.delete(key); })); }).then(function () { return self.clients.claim(); })); });

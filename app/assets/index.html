@@ -294,6 +294,7 @@
     </main>
 
     <nav class="tabbar" aria-label="能耗分页" role="tablist">
+      <span class="tab-glider" aria-hidden="true"></span>
       <button class="tab is-active" id="tab-body" type="button" data-tab="body" role="tab" aria-selected="true" aria-controls="panel-body">
         <span class="tab-icon"><svg class="icon"><use href="#i-body"></use></svg></span>
         <span class="tab-label">自体</span>
@@ -426,6 +427,7 @@
           <div><dt>评价等级</dt><dd>按周边功耗（固定项 + 电器 + 出行）：≤5 省电模式；≤15 节能模式；≤25 均衡模式；≤40 性能模式；更高为高耗能模式</dd></div>
           <div><dt>历史记录</dt><dd>按自然日保存在本机，保留最近 2 年（730 天）</dd></div>
           <div><dt>每日归零</dt><dd>每天首次打开会把昨日用量归档，再把今日步数、充电次数、电器时长和出行清零；身体资料、已勾选项目和固定项保留。基础代谢与 WiFi/基站/云固定项仍计入全天。</dd></div>
+          <div><dt>固定参数</dt><dd>设备电池容量、笔记本 Wh、主机功率和电器功率可直接输入固定值；保存在本机，换日不变。需要防止误触时，在设置里打开「锁定设备和电器电池容量、功率」。</dd></div>
           <div><dt>标准煤</dt><dd>1 kWh ≈ 0.1228 千克标准煤</dd></div>
           <div><dt>特斯拉 Model X</dt><dd>按约 20.8 kWh/100km 估算，1 kWh 约可跑 4.8 km</dd></div>
           <div><dt>背景色</dt><dd>按当前页 kWh 在浅绿→浅蓝→杏色→浅珊瑚之间过渡</dd></div>
@@ -449,7 +451,7 @@
           </button>
           <button class="btn btn-primary" type="button" data-close-modal>完成</button>
         </div>
-        <p class="version">功耗计算器 · v2.1.2 · 离线版</p>
+        <p class="version">功耗计算器 · v2.2.0 · 离线版</p>
       </div>
     </section>
   </div>

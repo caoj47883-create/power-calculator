@@ -4,9 +4,11 @@
 
 v1.5 把界面从深色霓虹改成了**暖白纸感**；v1.6 把「打车」拆成电车和油车；v1.7 补上评价等级和本机历史，并交付可直接在 Mac 上打开的 iOS Xcode 工程。
 
-**v2.1.2 是配置保护版，Android / iOS / PWA 已同步**：换日只清零“每天会变”的用量（步数、充电次数、使用时长、出行），不动设备容量和功率；设置里新增「锁定设备和电器电池容量、功率」开关，可把设备电池容量、笔记本 Wh、主机功率和电器功率一起锁住，同时保留每天充电次数 / 使用时长 / 出行的录入。基础代谢和 WiFi / 基站 / 云固定项每天都在，所以归零后总额约 2.45 kWh，不是 0。
+**v2.2.0 是液态交互版，Android / iOS / PWA 已同步**：卡片换成暖白液态玻璃，指针/触控处有柔光，按压缩放；底部改为悬浮 dock，选中胶囊以弹簧动画滑动，向上/向下滚动时轻微收缩。设备电池容量、笔记本 Wh、主机功率和电器功率现在可以直接输入固定值，保存在本机、换日不变；需要防误触时仍可在设置里打开「锁定设备和电器电池容量、功率」。
 
 ![首次打开录入身体资料](screenshots/app-onboarding.png)
+
+![液态卡片、固定值输入与悬浮底栏](screenshots/app-device.png)
 
 ![数据保护开关](screenshots/app-settings.png)
 
@@ -24,25 +26,25 @@ v1.5 把界面从深色霓虹改成了**暖白纸感**；v1.6 把「打车」拆
 
 ### Android
 
-- 安装包：[`dist/功耗计算器-v2.1.2.apk`](dist/功耗计算器-v2.1.2.apk)
+- 安装包：[`dist/功耗计算器-v2.2.0.apk`](dist/功耗计算器-v2.2.0.apk)
 - 支持系统：Android 6.0（API 23）及以上
 - 体积：98 KB；不包含原生库，不依赖 Google Play 服务
 - 首次安装时，如果系统提示未知来源，允许本次安装即可
 - **不申请任何权限，不联网，不上传数据**；年龄、身高、体重、设置和历史只保存在本机
-- 版本：`2.1.2`，versionCode `13`
+- 版本：`2.2.0`，versionCode `14`
 
 SHA-256：
 
 ```text
-2928a8e321c959e25de7a6f4fbb0fe503c5e9127c4a4ea474ca9bd57c520b39f
+2604f01b247001a0089c8d64feea089ae888d6653a25a6531a206cf226067b54
 ```
 
 ### 没有 Mac：PWA / 网页版
 
 这是不经过 App Store、也不需要 Mac 的用法；在 iPhone / iPad 的 Safari 里打开后「添加到主屏幕」，会以独立窗口运行。
 
-- **PWA 包（推荐）**：[`dist/功耗计算器-v2.1.2-PWA.zip`](dist/功耗计算器-v2.1.2-PWA.zip)
-- **单文件网页版**：[`dist/功耗计算器-v2.1.2-web.html`](dist/功耗计算器-v2.1.2-web.html)（只适合快速预览/单文件托管，没有离线缓存）
+- **PWA 包（推荐）**：[`dist/功耗计算器-v2.2.0-PWA.zip`](dist/功耗计算器-v2.2.0-PWA.zip)
+- **单文件网页版**：[`dist/功耗计算器-v2.2.0-web.html`](dist/功耗计算器-v2.2.0-web.html)（只适合快速预览/单文件托管，没有离线缓存）
 - PWA 需要托管在 **HTTPS** 静态站点；临时压测或本地文件不能完整注册 Service Worker
 - 最简单的免费托管：[Cloudflare Pages 的 drag and drop](https://developers.cloudflare.com/pages/get-started/direct-upload/) 支持直接上传 zip；也可以用自己的 GitHub Pages / Netlify 等静态托管
 - 首次打开需要联网，加载一次后会把页面缓存到本机；之后断网也能从主屏幕启动。历史、身体资料和单卡固定只保存在该设备的 Safari 站点数据里
@@ -63,22 +65,22 @@ SHA-256：
 PWA zip SHA-256：
 
 ```text
-b085fd7985617366c276aee68dd05c8c95ab781786c6382f5ff0a722cafe1fd5
+c7b0b93e5f3922e08568f4ad6dde754ba9a559d7a52c25c109b91c3bc9807d04
 ```
 
 单文件网页版 SHA-256：
 
 ```text
-652f29e6206b554ec66efd92765525ba1562bbb52830bd59cd81d867f2aee79a
+5c2f24690e587e30d94b3e05312c5aa1daaff7a4876ff2bcbd26ccf4d60f19fe
 ```
 
 ### iOS
 
-> iOS 工程已同步到 v2.1.2（Build 13），页面与 Android 同源，历史保留 730 天。**仍不提供 IPA**：当前环境是 Windows，没有 Xcode / Apple 签名工具。
+> iOS 工程已同步到 v2.2.0（Build 14），页面与 Android 同源，历史保留 730 天。**仍不提供 IPA**：当前环境是 Windows，没有 Xcode / Apple 签名工具。
 
-- Xcode 工程：[`dist/功耗计算器-iOS-v2.1.2-Xcode.zip`](dist/功耗计算器-iOS-v2.1.2-Xcode.zip)
-- 内容：SwiftUI + WKWebView 工程、同源 v2.1.2 离线页面、AppIcon、启动色、Info.plist、隐私清单、共享 Scheme、GitHub Actions 未签名 IPA workflow、Windows Sideloadly 说明
-- Bundle ID：`com.powercalc.ledger`；最低 iOS 15.0；版本 2.1.2（Build 13）
+- Xcode 工程：[`dist/功耗计算器-iOS-v2.2.0-Xcode.zip`](dist/功耗计算器-iOS-v2.2.0-Xcode.zip)
+- 内容：SwiftUI + WKWebView 工程、同源 v2.2.0 离线页面、AppIcon、启动色、Info.plist、隐私清单、共享 Scheme、GitHub Actions 未签名 IPA workflow、Windows Sideloadly 说明
+- Bundle ID：`com.powercalc.ledger`；最低 iOS 15.0；版本 2.2.0（Build 14）
 - 有 Mac：Xcode 中选择自己的 Team 后运行；要上真机 / TestFlight：`Product → Archive`，再用自己的 Apple Developer 签名导出
 - 只有 Windows：上传到 GitHub，跑 workflow 得到未签名 IPA，再用 Sideloadly + 免费 Apple ID 安装；7 天有效，详见 [`ios/WINDOWS-SIDELOAD.md`](ios/WINDOWS-SIDELOAD.md)
 - 详细说明见 [`ios/README.md`](ios/README.md)
@@ -86,8 +88,18 @@ b085fd7985617366c276aee68dd05c8c95ab781786c6382f5ff0a722cafe1fd5
 iOS zip SHA-256：
 
 ```text
-3321ae8fa7d98b5f5ae7e0587d6a91fcb46ba4f8b124feabd2881741ec2533f1
+2dd248ecc573b59151da6fc34c1c9fc02e5f4d37ab7f769c2a0e47fd498e3acf
 ```
+
+## v2.2.0 的改动（Android / iOS / PWA）
+
+- **液态玻璃卡片**：暖白半透明表面、柔光高光跟随指针、细边框和轻微按压缩放；保持浅色纸面，不引入深色 / 霓虹背景
+- **悬浮底栏**：底部分页变成居中悬浮 dock，带玻璃模糊、选中胶囊滑动动画、点击回弹和滚动收缩；内容在 dock 下方留出滚动空间
+- **动态交互**：卡片按压缩放、底部选中胶囊弹簧过渡、轻量背景光斑漂移；支持 `prefers-reduced-motion`
+- **固定值手输**：手机 / 平板 / 耳机等电池容量、笔记本 Wh、主机功率、电器功率旁新增数字输入框；点击后可键盘输入，精确值保存在本机
+- **换日不变**：固定值与容量 / 功率不参与每日归零；模型不再把 4321 mAh、437 W 这类精确值按滑条步进取整，重新打开仍然保留
+- **配置锁兼容**：开启「锁定设备和电器电池容量、功率」后，数字输入框和滑条一起冻结；每天的充电次数、使用时长、出行仍可调
+- Android 2.2.0 / versionCode 14；iOS 2.2.0 / Build 14；PWA 缓存 `powercalc-pwa-v2.2.0`
 
 ## v2.1.2 的改动（Android / iOS / PWA）
 
@@ -145,7 +157,7 @@ iOS zip SHA-256：
 
 ## v1.7.0 的改动
 
-- 总览新增 **五档评价等级**
+- 总览新增 **五档评价等级**（当时的通用文案，v2.0 已换成你写的五条）
 - 总览新增 **最近 7 天历史**柱状图，按自然日记录总功耗，本机保留最近 **90 天**
 - 历史与当前设置分别持久化；Android 使用 localStorage，iOS 通过 WKWebView 桥接写入 `UserDefaults`
 - 新增 iOS Xcode 工程：SwiftUI + WKWebView、离线文件加载、历史/设置持久化桥接、浅色图标与启动页
@@ -311,18 +323,20 @@ iOS zip SHA-256：
 
 ## 已验证
 
-- **125 项**计算模型测试全部通过：实际年龄 BMR（30 / 40 / 50 岁）、步数 50 步取整、核心 / 可选设备默认勾选、未勾选不计入、电器勾选、11 种出行、打车电车/油车、周边五档边界与新档名、特斯拉续航换算、日期戳、配置锁状态与输入夹取等
+- **127 项**计算模型测试全部通过：实际年龄 BMR（30 / 40 / 50 岁）、步数 50 步取整、核心 / 可选设备默认勾选、未勾选不计入、电器勾选、11 种出行、打车电车/油车、周边五档边界与新档名、特斯拉续航换算、日期戳、配置锁状态、精确固定值（4321 mAh / 437 W / 73 W）与输入夹取等
 - 390 × 844 与 360 × 800 两种移动视口完成交互测试：首次开屏录入资料、保存后刷新不再询问、设置改年龄后 BMR 重算、设备 / 电器 / 出行勾选、展开更多设备与出行、步数 50 步与一键预设、活动强度预设、说明页、重置和 7 天历史
 - 单卡三态已逐项断言：未勾选 → 勾选后卡片可调 → 固定后只有该卡冻结、其他卡仍可调 → 再点取消勾选并解除锁定；状态按卡片保存在本机
 - 高能耗状态单独截图确认：50.57 kWh 时仍是暖玫瑰浅色背景
 - 换日归零已通过 UI 断言：把日期戳设为过去并写入步数 / 充电次数 / 冰箱时长 / 地铁里程，重新加载后这些值全部为 0、日期变为今天、资料仍保留，并显示归档提示
-- 配置保护已通过 UI 断言：开关打开后电池容量 / 主机功率 / 电器功率不可调，充电次数 / 使用时长 / 出行仍可调；关闭后恢复；换日后 4300 mAh、440 W、70 W 等配置值原样保留，锁仍生效
+- 配置保护已通过 UI 断言：开关打开后电池容量 / 主机功率 / 电器功率不可调，充电次数 / 使用时长 / 出行仍可调；关闭后恢复；换日后 4321 mAh、437 W、73 W 等精确固定值原样保留，锁仍生效
+- 液态交互已通过 UI 断言：39 张卡片应用玻璃表面与指针高光，悬浮 dock 为 absolute、圆角 27 px、backdrop blur 生效；15 个固定值数字输入框可手输，且随配置锁 / 单卡固定一起禁用
+- 固定值输入已通过 UI 断言：手机容量输入 4321 mAh、台式功率 437 W、冰箱功率 73 W 后状态立即更新；重载和换日归一化后仍保留精确值，不按滑条步进回退
 - 历史写入与评价联动已通过 UI 断言：今日记录会随输入更新，历史区固定 7 天，档位按周边功耗判定
-- PWA 在本地 HTTP 环境验证：manifest 可读、Service Worker 已激活、缓存 `powercalc-pwa-v2.1.2` 已写入；**停掉静态服务器后重新加载仍能打开并进入首次资料页**（离线启动验证通过）
+- PWA 在本地 HTTP 环境验证：manifest 可读、Service Worker 已激活、缓存 `powercalc-pwa-v2.2.0` 已写入；**停掉静态服务器后重新加载仍能打开并进入首次资料页**（离线启动验证通过）
 - 截图见 [`screenshots/`](screenshots/)
 - Android APK 通过 `aapt2`、`zipalign`、`apksigner` 校验；签名 v1 / v2 / v3 均通过；**无任何 `uses-permission`**
-- Android：`com.powercalc.ledger`，minSdk 23，targetSdk 34，versionCode 13，versionName 2.1.2
-- iOS：Xcode 工程已同步到 2.1.2（Build 13），页面四个文件与 Android 的 SHA-256 完全一致；WKWebView 桥接保存 `powercalc.profile.v1` / `powercalc.itemLocks.v1`，配置锁包含在 state 中
+- Android：`com.powercalc.ledger`，minSdk 23，targetSdk 34，versionCode 14，versionName 2.2.0
+- iOS：Xcode 工程已同步到 2.2.0（Build 14），页面四个文件与 Android 的 SHA-256 完全一致；WKWebView 桥接保存 `powercalc.profile.v1` / `powercalc.itemLocks.v1`，配置锁包含在 state 中
 - iOS 工程文件已通过独立 `pbxproj` 解析：target / 版本 / Bundle ID / Resources 构建阶段正常；Info.plist、隐私清单、资源 JSON、9 个 AppIcon 尺寸已校验
 - **iOS 未在 macOS/Xcode 中编译或签名，因此没有 IPA**；需要在 Mac 上选择 Team 后 Archive
 
@@ -336,7 +350,7 @@ iOS zip SHA-256：
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
 ```
 
-脚本产物为 `dist/power-calculator-v2.1.2.apk`（ASCII 名）；交付副本已命名为中文。签名密钥位于本机 `keystore/powercalc-release.jks`，别名 `powercalc`，**不进入 Git**；口令通过环境变量 `POWERCALC_KEYSTORE_PASSWORD` 或本机忽略文件 `keystore/keystore.password` 提供。首次构建若没有密钥，脚本会生成随机口令并写入该文件。仅适合本地更新；如果要公开上架，请换用自己的密钥并妥善保管。
+脚本产物为 `dist/power-calculator-v2.2.0.apk`（ASCII 名）；交付副本已命名为中文。签名密钥位于本机 `keystore/powercalc-release.jks`，别名 `powercalc`，**不进入 Git**；口令通过环境变量 `POWERCALC_KEYSTORE_PASSWORD` 或本机忽略文件 `keystore/keystore.password` 提供。首次构建若没有密钥，脚本会生成随机口令并写入该文件。仅适合本地更新；如果要公开上架，请换用自己的密钥并妥善保管。
 
 iOS 工程需要在 macOS + Xcode 15 中构建：
 
@@ -356,16 +370,16 @@ app/
   java/.../MainActivity.java   WebView 容器、返回键处理、浅色系统栏
   res/                         主题、启动图、浅色 Adaptive/Legacy 图标
   assets/                      离线 HTML / CSS / JS 与计算模型
-ios/                           SwiftUI + WKWebView 的 Xcode 工程（v2.1.2，Build 13）
+ios/                           SwiftUI + WKWebView 的 Xcode 工程（v2.2.0，Build 14）
   PowerLedger/                 App 源码、Info.plist、隐私清单、图标
-  PowerLedger/Resources/web/   与 Android 同源的 v2.1 离线页面
+  PowerLedger/Resources/web/   与 Android 同源的 v2.2 离线页面
   README.md                    iOS 构建与签名说明
 pwa/                           无 Mac 用的 PWA 站点（manifest / Service Worker / 图标）
-test/model.test.html           计算模型测试（125 项）
+test/model.test.html           计算模型测试（127 项）
 tools/capture-cdp.ps1          移动视口截图与交互验收脚本（含首次录入 / 勾选 / 固定测试）
 screenshots/                   四页预览、总览评价/历史、背景与功能细节
 docs/                          产品需求文档 PRD v1.0（docx）与生成脚本
 design/app-icon.svg            浅色应用图标源文件
 build.ps1                      Android 编译、D8、zipalign、签名、校验
-dist/                          v2.1.2 APK、iOS Xcode zip、PWA 包、单文件网页与 SHA-256
+dist/                          v2.2.0 APK、iOS Xcode zip、PWA 包、单文件网页与 SHA-256
 ```

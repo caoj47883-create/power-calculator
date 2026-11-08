@@ -298,9 +298,10 @@
 
       if (def.mode === 'power') {
         state.devices[key] = {
-          watts: roundTo(
-            clamp(numberOr(item.watts, fallback.watts), def.powerMin, def.powerMax),
-            def.powerStep
+          // Fixed ratings are user-entered exact values; sliders stay coarse,
+          // but reloading must not snap 437 W back to 440 W.
+          watts: Math.round(
+            clamp(numberOr(item.watts, fallback.watts), def.powerMin, def.powerMax)
           ),
           hours: roundTo(
             clamp(numberOr(item.hours, fallback.hours), def.hoursMin, def.hoursMax),
@@ -310,9 +311,8 @@
         };
       } else {
         state.devices[key] = {
-          capacity: roundTo(
-            clamp(numberOr(item.capacity, fallback.capacity), def.capacityMin, def.capacityMax),
-            def.capacityStep
+          capacity: Math.round(
+            clamp(numberOr(item.capacity, fallback.capacity), def.capacityMin, def.capacityMax)
           ),
           cycles: roundTo(
             clamp(numberOr(item.cycles, fallback.cycles), 0, MODEL.battery.cyclesMax),
@@ -339,9 +339,8 @@
         }
       }
       state.appliances[key] = {
-        watts: roundTo(
-          clamp(numberOr(item.watts, fallback.watts), def.powerMin, def.powerMax),
-          def.powerStep
+        watts: Math.round(
+          clamp(numberOr(item.watts, fallback.watts), def.powerMin, def.powerMax)
         ),
         hours: roundTo(
           clamp(numberOr(item.hours, fallback.hours), 0, 24),

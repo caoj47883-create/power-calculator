@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.powercalc.ledger"
-    android:versionCode="13"
-    android:versionName="2.1.2">
+    android:versionCode="14"
+    android:versionName="2.2.0">
 
     <!-- 完全离线：不申请网络、存储、定位或任何运行时权限。 -->
     <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" />
