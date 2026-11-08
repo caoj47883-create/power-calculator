@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-tab="body">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f4ee">
+  <meta name="color-scheme" content="light">
+  <title>功耗计算器</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <meta name="theme-color" content="#f7f4ee">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="功耗计算器">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <div class="app" id="app">
+    <section class="hero" id="hero" aria-labelledby="heroLabel">
+      <span class="hero-glow" aria-hidden="true"></span>
+      <span class="hero-ring" aria-hidden="true"></span>
+      <div class="hero-head">
+        <span class="eyebrow" id="heroTitle"><i class="live-dot" aria-hidden="true"></i><span id="heroLabel">自体功耗</span></span>
+        <div class="hero-tools">
+          <span class="hero-date" id="dateLabel">今天</span>
+          <button class="round-button hero-settings-button" id="settingsButton" type="button" aria-label="修改身体资料" aria-haspopup="dialog">
+            <svg class="icon"><use href="#i-settings"></use></svg>
+          </button>
+          <button class="round-button hero-info-button" id="infoButton" type="button" aria-label="查看计算说明" aria-haspopup="dialog">
+            <svg class="icon"><use href="#i-info"></use></svg>
+          </button>
+        </div>
+      </div>
+      <div class="hero-main">
+        <div class="total-block">
+          <span class="total-number" id="heroKwh">0.00</span>
+          <span class="total-unit">kWh</span>
+        </div>
+        <div class="power-block">
+          <span>等效平均功率</span>
+          <strong id="heroAverage">0 W</strong>
+        </div>
+      </div>
+      <div class="equivalents" id="equivalents">
+        <span>相当于完全燃烧 <b id="coalEquivalent">0.00</b> 千克标准煤</span>
+        <span>可供特斯拉 Model X 跑 <b id="teslaEquivalent">0.0</b> km</span>
+      </div>
+      <div class="hero-overview" id="heroOverview" hidden>
+        <div class="energy-bar" id="energyBar" role="img" aria-label="自体、设备、周边能耗占比">
+          <span class="bar-seg seg-body" data-seg="body"></span>
+          <span class="bar-seg seg-device" data-seg="device"></span>
+          <span class="bar-seg seg-transit" data-seg="transit"></span>
+        </div>
+        <div class="energy-legend" aria-label="分类能耗">
+          <button class="legend-item" type="button" data-go-tab="body">
+            <i class="legend-dot dot-body" aria-hidden="true"></i>
+            <span>自体</span>
+            <b id="bodyLegendKwh">0.00</b>
+          </button>
+          <button class="legend-item" type="button" data-go-tab="device">
+            <i class="legend-dot dot-device" aria-hidden="true"></i>
+            <span>设备</span>
+            <b id="deviceLegendKwh">0.00</b>
+          </button>
+          <button class="legend-item" type="button" data-go-tab="transit">
+            <i class="legend-dot dot-transit" aria-hidden="true"></i>
+            <span>周边</span>
+            <b id="transitLegendKwh">0.00</b>
+          </button>
+          <span class="legend-unit">kWh</span>
+        </div>
+      </div>
+    </section>
+
+    <main class="stage" id="stage">
+      <section class="panel is-active" id="panel-body" data-panel="body" role="tabpanel" aria-labelledby="tab-body">
+        <article class="card profile-summary-card">
+          <div class="profile-summary-head">
+            <div class="profile-summary-copy">
+              <span class="kicker">身体资料</span>
+              <h3 id="profileSummary">30 岁 · 170 cm · 68 kg</h3>
+              <p>基础代谢按实际年龄计算 · BMI <b id="bmiOut">23.5</b> · <span id="bmiText">正常</span></p>
+            </div>
+            <button class="ghost-button" id="editProfileButton" type="button">修改</button>
+          </div>
+        </article>
+
+        <div class="stat-grid">
+          <div class="stat">
+            <span class="stat-label">静息功耗</span>
+            <strong class="stat-value"><span id="restPower">0</span><small>W</small></strong>
+            <span class="stat-note">基础代谢水平</span>
+          </div>
+          <div class="stat stat-accent">
+            <span class="stat-label">活动功耗</span>
+            <strong class="stat-value"><span id="activePower">0</span><small>W</small></strong>
+            <span class="stat-note" id="activeState">静坐时</span>
+          </div>
+        </div>
+
+        <article class="card step-card">
+          <div class="card-head">
+            <div class="card-title">
+              <h3>每日步数</h3>
+              <p>按约 100 步/分钟折算为活动时长</p>
+            </div>
+            <output class="value-pill" for="stepsInput"><b id="stepsOut">8,000</b> 步</output>
+          </div>
+          <input class="range" id="stepsInput" type="range" min="0" max="30000" step="50" value="8000" aria-label="每日步数，步进 50 步">
+          <div class="range-ends"><span>0</span><span>15,000</span><span>30,000 步</span></div>
+          <div class="intensity-presets step-presets" aria-label="常用步数">
+            <button class="intensity-preset" type="button" data-steps="3000" aria-pressed="false"><span>轻量</span><b>3,000</b></button>
+            <button class="intensity-preset" type="button" data-steps="5000" aria-pressed="false"><span>通勤</span><b>5,000</b></button>
+            <button class="intensity-preset is-active" type="button" data-steps="8000" aria-pressed="true"><span>日常</span><b>8,000</b></button>
+            <button class="intensity-preset" type="button" data-steps="10000" aria-pressed="false"><span>活跃</span><b>10,000</b></button>
+            <button class="intensity-preset" type="button" data-steps="15000" aria-pressed="false"><span>多走</span><b>15,000</b></button>
+            <button class="intensity-preset" type="button" data-steps="20000" aria-pressed="false"><span>暴走</span><b>20,000</b></button>
+          </div>
+          <div class="step-metrics">
+            <div class="step-metric">
+              <strong><span id="stepDistance">0</span><small>km</small></strong>
+              <span>步行距离</span>
+            </div>
+            <div class="step-metric">
+              <strong><span id="stepMinutes">0</span><small>分钟</small></strong>
+              <span>活动时长</span>
+            </div>
+            <div class="step-metric is-accent">
+              <strong><span id="stepEnergy">0</span><small>kWh</small></strong>
+              <span>活动耗能</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <div class="card-title">
+              <h3>活动强度</h3>
+              <p>0.05 MET 微调，或直接选择常用强度</p>
+            </div>
+            <output class="value-pill" for="metInput"><b id="metOut">4.20</b> MET</output>
+          </div>
+          <input class="range" id="metInput" type="range" min="1" max="12" step="0.05" value="4.2" aria-label="活动强度，单位 MET，步进 0.05">
+          <div class="range-ends"><span>1.0 静坐</span><span>12.0 高强度</span></div>
+          <div class="intensity-presets" aria-label="常用活动强度">
+            <button class="intensity-preset" type="button" data-met="1.3" aria-pressed="false"><span>静坐</span><b>1.3</b></button>
+            <button class="intensity-preset" type="button" data-met="2.5" aria-pressed="false"><span>散步</span><b>2.5</b></button>
+            <button class="intensity-preset is-active" type="button" data-met="4.2" aria-pressed="true"><span>快走</span><b>4.2</b></button>
+            <button class="intensity-preset" type="button" data-met="5.5" aria-pressed="false"><span>慢跑</span><b>5.5</b></button>
+            <button class="intensity-preset" type="button" data-met="7.0" aria-pressed="false"><span>骑行</span><b>7.0</b></button>
+            <button class="intensity-preset" type="button" data-met="10.0" aria-pressed="false"><span>高强度</span><b>10.0</b></button>
+          </div>
+          <p class="hint">今天约活动 <b id="activityMinutesHint">80</b> 分钟；活动功耗 = 静息功率 × MET。</p>
+        </article>
+      </section>
+
+      <section class="panel" id="panel-device" data-panel="device" role="tabpanel" aria-labelledby="tab-device" hidden>
+        <div class="list-heading" id="deviceHeading">
+          <h3>设备清单</h3>
+          <span>电池 / 功率 · 每日耗能</span>
+        </div>
+        <div class="device-list" id="deviceList"></div>
+        <button class="section-expand" id="deviceExpandButton" type="button" aria-expanded="false" aria-controls="deviceExtraList">
+          <span>展开更多设备</span>
+          <em id="deviceExpandMeta">6 项可选</em>
+          <svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg>
+        </button>
+        <div class="device-list extra-list" id="deviceExtraList" hidden></div>
+        <div class="tip-card">
+          <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+          <p>勾选才会计入总能耗。电池设备按容量、3.7V 与 85% 充电效率估算；笔记本按 Wh 电池能量，台式主机按功率 × 使用时长计算。</p>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-transit" data-panel="transit" role="tabpanel" aria-labelledby="tab-transit" hidden>
+        <div class="list-heading" id="fixedHeading">
+          <h3>周边固定项</h3>
+          <span id="fixedSubtotal">0.69 kWh/天</span>
+        </div>
+        <div class="fixed-card">
+          <div class="fixed-row">
+            <span class="fixed-icon"><svg class="icon"><use href="#i-wifi"></use></svg></span>
+            <div class="fixed-copy">
+              <h3>WiFi 路由器</h3>
+              <p>8 W · 24 小时开启</p>
+            </div>
+            <div class="fixed-energy"><strong id="wifiFixedKwh">0.19</strong><small>kWh/天</small></div>
+          </div>
+          <div class="fixed-row">
+            <span class="fixed-icon"><svg class="icon"><use href="#i-tower"></use></svg></span>
+            <div class="fixed-copy">
+              <h3>通信基站</h3>
+              <p>固定分摊 · 0.25 kWh/天</p>
+            </div>
+            <div class="fixed-energy"><strong id="baseFixedKwh">0.25</strong><small>kWh/天</small></div>
+          </div>
+          <div class="fixed-row">
+            <span class="fixed-icon"><svg class="icon"><use href="#i-cloud"></use></svg></span>
+            <div class="fixed-copy">
+              <h3>云服务器及传输</h3>
+              <p>固定分摊 · 0.25 kWh/天</p>
+            </div>
+            <div class="fixed-energy"><strong id="cloudFixedKwh">0.25</strong><small>kWh/天</small></div>
+          </div>
+        </div>
+
+        <div class="list-heading spaced" id="applianceHeading">
+          <h3>电器功耗</h3>
+          <span id="applianceSubtotal">0.00 kWh/天</span>
+        </div>
+        <div class="appliance-list" id="applianceList"></div>
+        <div class="tip-card">
+          <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+          <p>空调、热水器等按“功率 × 使用时长”估算。默认只勾选冰箱，其他电器右上角勾选后才计入；功率为典型值。</p>
+        </div>
+
+        <div class="list-heading spaced" id="travelHeading">
+          <h3>今日出行</h3>
+          <span id="travelSubtotal">0.00 kWh</span>
+        </div>
+        <div class="trip-group-label" id="dailyTripGroup"><span>日常出行</span><em>拖动滑条</em></div>
+        <div class="trip-list" id="transitList"></div>
+        <button class="section-expand" id="tripExpandButton" type="button" aria-expanded="false" aria-controls="tripExtra">
+          <span>展开更多出行</span>
+          <em id="tripExpandMeta">9 项可选</em>
+          <svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg>
+        </button>
+        <div id="tripExtra" hidden>
+          <div class="trip-group-label"><span>更多日常出行</span><em>拖动滑条</em></div>
+          <div class="trip-list" id="transitExtraList"></div>
+          <div class="trip-group-label" id="intercityGroup"><span>城际出行</span><em>输入公里数 · 人均公里能耗</em></div>
+          <div class="trip-input-list" id="transitInputList"></div>
+        </div>
+
+        <div class="insight-card" id="transitInsight">
+          <span class="insight-icon" aria-hidden="true">
+            <svg class="icon"><use href="#i-spark"></use></svg>
+          </span>
+          <p id="transitInsightText">拖动滑条，看看一次出行会消耗多少能量。</p>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-overview" data-panel="overview" role="tabpanel" aria-labelledby="tab-overview" hidden>
+        <article class="grade-card" id="gradeCard" data-level="1">
+          <span class="grade-stamp" aria-hidden="true">
+            <svg class="icon"><use href="#i-leaf"></use></svg>
+            <b id="gradeIndex">01</b>
+          </span>
+          <div class="grade-copy">
+            <span class="grade-kicker" id="gradeLabel">今日评价 · 省电模式</span>
+            <p class="grade-line" id="gradeText">点几块炭够你活一天，牛逼</p>
+            <span class="grade-metric" id="gradeMetric">按周边 3.84 kWh 评定</span>
+          </div>
+          <span class="grade-scale" id="gradeScale" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i>
+          </span>
+        </article>
+
+        <div class="list-heading">
+          <h3>三类明细</h3>
+          <span>点击进入分类调整</span>
+        </div>
+        <div class="overview-list">
+          <button class="overview-item overview-body" type="button" data-go-tab="body">
+            <span class="overview-icon"><svg class="icon"><use href="#i-body"></use></svg></span>
+            <span class="overview-copy"><strong>自体功耗</strong><small>身高体重 · 步数 · MET</small></span>
+            <span class="overview-value"><strong id="overviewBodyKwh">0.00</strong><small>kWh</small><em id="overviewBodyPct">0%</em></span>
+          </button>
+          <button class="overview-item overview-device" type="button" data-go-tab="device">
+            <span class="overview-icon"><svg class="icon"><use href="#i-phone"></use></svg></span>
+            <span class="overview-copy"><strong>设备功耗</strong><small>电池 · 充电次数 · 主机</small></span>
+            <span class="overview-value"><strong id="overviewDeviceKwh">0.00</strong><small>kWh</small><em id="overviewDevicePct">0%</em></span>
+          </button>
+          <button class="overview-item overview-transit" type="button" data-go-tab="transit">
+            <span class="overview-icon"><svg class="icon"><use href="#i-train"></use></svg></span>
+            <span class="overview-copy"><strong>周边功耗</strong><small>固定项 · 电器 · 出行</small></span>
+            <span class="overview-value"><strong id="overviewTransitKwh">0.00</strong><small>kWh</small><em id="overviewTransitPct">0%</em></span>
+          </button>
+        </div>
+        <div class="overview-callout" id="overviewInsight">
+          <span class="overview-callout-icon"><svg class="icon"><use href="#i-spark"></use></svg></span>
+          <p id="overviewInsightText">这里是今天三类能量的总账。</p>
+        </div>
+
+        <div class="list-heading spaced history-heading">
+          <h3>最近 7 天</h3>
+          <span>本机保留 2 年</span>
+        </div>
+        <article class="history-card" aria-label="最近七天总功耗历史">
+          <div class="history-bars" id="historyBars" aria-label="最近七天每日总功耗"></div>
+          <p class="history-caption" id="historyCaption">从今天开始记录。</p>
+        </article>
+
+        <div class="tip-card">
+          <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+          <p>总功耗 = 自体 + 设备 + 周边。前三页顶部只显示各自分类的加权结果，本页才汇总全部。</p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="tabbar" aria-label="能耗分页" role="tablist">
+      <button class="tab is-active" id="tab-body" type="button" data-tab="body" role="tab" aria-selected="true" aria-controls="panel-body">
+        <span class="tab-icon"><svg class="icon"><use href="#i-body"></use></svg></span>
+        <span class="tab-label">自体</span>
+      </button>
+      <button class="tab" id="tab-device" type="button" data-tab="device" role="tab" aria-selected="false" aria-controls="panel-device">
+        <span class="tab-icon"><svg class="icon"><use href="#i-phone"></use></svg></span>
+        <span class="tab-label">设备</span>
+      </button>
+      <button class="tab" id="tab-transit" type="button" data-tab="transit" role="tab" aria-selected="false" aria-controls="panel-transit">
+        <span class="tab-icon"><svg class="icon"><use href="#i-train"></use></svg></span>
+        <span class="tab-label">周边</span>
+      </button>
+      <button class="tab" id="tab-overview" type="button" data-tab="overview" role="tab" aria-selected="false" aria-controls="panel-overview">
+        <span class="tab-icon"><svg class="icon"><use href="#i-overview"></use></svg></span>
+        <span class="tab-label">总览</span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="modal profile-modal" id="profileModal" hidden>
+    <div class="modal-backdrop" data-close-profile></div>
+    <section class="sheet profile-sheet" id="profileSheet" role="dialog" aria-modal="true" aria-labelledby="profileTitle" tabindex="-1">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <div>
+          <span class="kicker" id="profileKicker">BEFORE WE START</span>
+          <h2 id="profileTitle">先认识一下你</h2>
+        </div>
+        <button class="round-button" id="closeProfileButton" type="button" aria-label="关闭身体资料">
+          <svg class="icon"><use href="#i-close"></use></svg>
+        </button>
+      </div>
+      <div class="sheet-scroll">
+        <p class="sheet-lead" id="profileLead">身高、体重和年龄只录入一次，之后在「身体资料」里修改。基础代谢会按你的实际年龄计算。</p>
+        <div class="profile-form">
+          <label class="profile-field">
+            <span class="profile-field-label"><b>年龄</b><small>实际年龄，用于基础代谢</small></span>
+            <span class="profile-input"><input id="profileAge" type="number" inputmode="numeric" min="16" max="80" step="1" value="30" aria-label="年龄"><em>岁</em></span>
+          </label>
+          <label class="profile-field">
+            <span class="profile-field-label"><b>身高</b><small>140–210 cm</small></span>
+            <span class="profile-input"><input id="profileHeight" type="number" inputmode="numeric" min="140" max="210" step="1" value="170" aria-label="身高"><em>cm</em></span>
+          </label>
+          <label class="profile-field">
+            <span class="profile-field-label"><b>体重</b><small>40–120 kg</small></span>
+            <span class="profile-input"><input id="profileWeight" type="number" inputmode="numeric" min="40" max="120" step="1" value="68" aria-label="体重"><em>kg</em></span>
+          </label>
+        </div>
+        <div class="profile-settings-extra" id="profileSettingsExtra" hidden>
+          <div class="settings-section-title"><span>数据保护</span><em>只锁配置，不锁每日用量</em></div>
+          <div class="config-lock-row">
+            <div class="config-lock-copy">
+              <b>锁定设备和电器电池容量、功率</b>
+              <small>开启后容量 / 功率不可调；每天的充电次数、使用时长和出行仍可录入</small>
+            </div>
+            <button class="switch" id="configLockToggle" type="button" role="switch" aria-checked="false" aria-label="锁定设备和电器电池容量、功率">
+              <span aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+        <div class="note-block">
+          <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+          <p>资料只保存在本机，不联网；第一次保存后，下次打开不会再问。</p>
+        </div>
+      </div>
+      <div class="sheet-footer">
+        <button class="btn btn-primary" id="saveProfileButton" type="button">保存并开始</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" id="infoModal" hidden>
+    <div class="modal-backdrop" data-close-modal></div>
+    <section class="sheet" id="infoSheet" role="dialog" aria-modal="true" aria-labelledby="infoTitle" tabindex="-1">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <div>
+          <span class="kicker">ABOUT THE NUMBERS</span>
+          <h2 id="infoTitle">这些数字怎么来的？</h2>
+        </div>
+        <button class="round-button" id="closeInfo" type="button" data-close-modal aria-label="关闭说明">
+          <svg class="icon"><use href="#i-close"></use></svg>
+        </button>
+      </div>
+      <div class="sheet-scroll">
+        <p class="sheet-lead">这个应用把一天里的三层能量放进同一个账本：身体代谢、设备充电与主机用电，以及 WiFi、基站、云服务器、家用电器和出行等周边开销。第一次打开会先录入年龄、身高和体重，之后在「身体资料」里修改；设备、电器和出行子项勾选后才计入。顶部背景仍会在浅色纸面里轻微变化。</p>
+
+        <div class="formula-grid">
+          <div class="formula-card">
+            <span class="formula-index">01</span>
+            <h3>自体</h3>
+            <p>基础代谢依据实际年龄、身高和体重估算，性别取男女平均常数。步数按 100 步/分钟折算活动时长，活动时功率 = 静息功率 × MET，强度可按 0.05 MET 微调。</p>
+          </div>
+          <div class="formula-card">
+            <span class="formula-index">02</span>
+            <h3>设备</h3>
+            <p>电池设备按容量 × 电压 × 满充次数 ÷ 85% 效率；笔记本按 Wh 电池能量；台式主机按功率 × 使用时长。</p>
+          </div>
+          <div class="formula-card">
+            <span class="formula-index">03</span>
+            <h3>周边</h3>
+            <p>WiFi 按 8W × 24h 固定计入；通信基站、云服务器及传输各固定 0.25 kWh/天。电器按功率 × 时长；大巴、火车、高铁、飞机按人均公里能耗，直接输入公里数。</p>
+          </div>
+        </div>
+
+        <h3 class="section-title">估算口径</h3>
+        <dl class="assumptions">
+          <div><dt>基础代谢</dt><dd>10×体重 + 6.25×身高 − 5×年龄 − 78 kcal/天；性别取男女平均常数</dd></div>
+          <div><dt>身体资料</dt><dd>首次录入年龄、身高、体重；之后从顶部齿轮或「修改」进入设置</dd></div>
+          <div><dt>计入规则</dt><dd>设备、电器、出行子项勾选后才计入；右上角圆圈按「勾选 → 固定 → 取消勾选」循环</dd></div>
+          <div><dt>固定调节</dt><dd>每个子卡片右上角点第二次即固定该卡片，卡片内滑条和输入框会冻结；再点一次取消勾选，不会误触其他项</dd></div>
+          <div><dt>步数</dt><dd>100 步/分钟；步长 ≈ 0.413 × 身高</dd></div>
+          <div><dt>活动强度</dt><dd>1–12 MET，0.05 MET 微调，快走约 4.2 MET</dd></div>
+          <div><dt>设备电池</dt><dd>手机 800–10,000 mAh；平板 3,000–15,000 mAh；耳机 100–1,800 mAh；移动电源 5,000–27,000 mAh</dd></div>
+          <div><dt>笔记本</dt><dd>电池能量 40–120 Wh；按完整充电次数计入</dd></div>
+          <div><dt>台式主机</dt><dd>150–1,000 W；按功率 × 使用时长</dd></div>
+          <div><dt>充电效率</dt><dd>按 85% 计算，不含充电器空载功耗</dd></div>
+          <div><dt>电器</dt><dd>空调、电热水器、冰箱、洗衣机、电视；按功率 × 时长</dd></div>
+          <div><dt>WiFi</dt><dd>8 W × 24 h = 0.192 kWh/天</dd></div>
+          <div><dt>通信基站</dt><dd>固定 0.25 kWh/天（按日分摊）</dd></div>
+          <div><dt>云服务器</dt><dd>含传输；固定 0.25 kWh/天</dd></div>
+          <div><dt>地铁</dt><dd>35 km/h；0.060 kWh / 人·公里</dd></div>
+          <div><dt>电动车</dt><dd>两轮电动自行车，20 km/h；0.018 kWh/km</dd></div>
+          <div><dt>打车 · 电车</dt><dd>纯电出租车，0.15 kWh/km</dd></div>
+          <div><dt>打车 · 油车</dt><dd>燃油出租车，0.55 kWh/km，约 6 L / 100 km</dd></div>
+          <div><dt>电车 / 油车</dt><dd>0.15 / 0.60 kWh/km；公交车人均 0.035 kWh/km</dd></div>
+          <div><dt>城际出行</dt><dd>大巴 0.050、火车 0.045、高铁 0.065、飞机 0.300 kWh/人·公里；公里数手输</dd></div>
+          <div><dt>评价等级</dt><dd>按周边功耗（固定项 + 电器 + 出行）：≤5 省电模式；≤15 节能模式；≤25 均衡模式；≤40 性能模式；更高为高耗能模式</dd></div>
+          <div><dt>历史记录</dt><dd>按自然日保存在本机，保留最近 2 年（730 天）</dd></div>
+          <div><dt>每日归零</dt><dd>每天首次打开会把昨日用量归档，再把今日步数、充电次数、电器时长和出行清零；身体资料、已勾选项目和固定项保留。基础代谢与 WiFi/基站/云固定项仍计入全天。</dd></div>
+          <div><dt>标准煤</dt><dd>1 kWh ≈ 0.1228 千克标准煤</dd></div>
+          <div><dt>特斯拉 Model X</dt><dd>按约 20.8 kWh/100km 估算，1 kWh 约可跑 4.8 km</dd></div>
+          <div><dt>背景色</dt><dd>按当前页 kWh 在浅绿→浅蓝→杏色→浅珊瑚之间过渡</dd></div>
+        </dl>
+
+        <div class="note-block">
+          <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+          <p>自体能耗来自食物代谢，设备和周边来自电力或燃料。把三者都换算成 kWh，只是为了比较能量数量级，并不代表它们可以互相替代或真的燃烧了标准煤。基站采用固定日分摊值，不是手机直连基站的实时功率。</p>
+        </div>
+        <div class="note-block quiet">
+          <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+          <p>所有计算都在本机完成。应用不联网、不需要权限，也不会收集你的数据。</p>
+        </div>
+      </div>
+
+      <div class="sheet-footer">
+        <div class="sheet-actions">
+          <button class="btn btn-ghost" id="resetButton" type="button">
+            <svg class="icon"><use href="#i-reset"></use></svg>
+            恢复示例值
+          </button>
+          <button class="btn btn-primary" type="button" data-close-modal>完成</button>
+        </div>
+        <p class="version">功耗计算器 · v2.1.2 · 离线版</p>
+      </div>
+    </section>
+  </div>
+
+  <svg class="svg-sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-bolt" viewBox="0 0 24 24">
+        <path d="M13.2 2.2 4.4 13.4h5.9l.4 8.4 8.9-11.4h-6.1l-.3-8.2Z" fill="currentColor" stroke="none"></path>
+      </symbol>
+      <symbol id="i-body" viewBox="0 0 24 24">
+        <circle cx="12" cy="4.8" r="2.4"></circle>
+        <path d="M12 7.7v6.1m0 0-3.1 7.1m3.1-7.1 3.1 7.1M6.7 10.4 12 12l5.3-1.6"></path>
+      </symbol>
+      <symbol id="i-overview" viewBox="0 0 24 24">
+        <rect x="3.5" y="4" width="7" height="7" rx="1.5"></rect>
+        <rect x="13.5" y="4" width="7" height="7" rx="1.5"></rect>
+        <rect x="3.5" y="14" width="7" height="6" rx="1.5"></rect>
+        <rect x="13.5" y="14" width="7" height="6" rx="1.5"></rect>
+      </symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24">
+        <rect x="7" y="2.5" width="10" height="19" rx="2.6"></rect>
+        <path d="M10.5 18.5h3"></path>
+      </symbol>
+      <symbol id="i-earbuds" viewBox="0 0 24 24">
+        <path d="M8.4 3.8a2.7 2.7 0 0 1 2.7 2.7v5.2a2.7 2.7 0 0 1-5.4 0V6.5a2.7 2.7 0 0 1 2.7-2.7Z"></path>
+        <path d="M15.6 8.4a2.7 2.7 0 0 1 2.7 2.7v5.2a2.7 2.7 0 0 1-5.4 0v-5.2a2.7 2.7 0 0 1 2.7-2.7Z"></path>
+        <path d="M8.4 11.7v2.1M15.6 15.9v2.1"></path>
+      </symbol>
+      <symbol id="i-actioncam" viewBox="0 0 24 24">
+        <rect x="3" y="6" width="18" height="12" rx="3"></rect>
+        <circle cx="12" cy="12" r="3.4"></circle>
+        <path d="M7 6V4h4v2M18 9.2h.01"></path>
+      </symbol>
+      <symbol id="i-camera" viewBox="0 0 24 24">
+        <rect x="3" y="7" width="18" height="13" rx="2.5"></rect>
+        <path d="m8 7 1.4-2.5h5.2L16 7"></path>
+        <circle cx="12" cy="13.5" r="4"></circle>
+      </symbol>
+      <symbol id="i-instant" viewBox="0 0 24 24">
+        <rect x="4" y="3.5" width="16" height="17.5" rx="2.6"></rect>
+        <rect x="7" y="6.8" width="10" height="4.3" rx="1.2"></rect>
+        <circle cx="12" cy="15.6" r="2.2"></circle>
+        <path d="M7.5 19.6h9"></path>
+      </symbol>
+      <symbol id="i-tower" viewBox="0 0 24 24">
+        <path d="M12 21 8.5 5 12 2l3.5 3L12 21Z"></path>
+        <path d="M8.5 5h7M9.5 11h5M7 21h10M9 16h6M4.5 7.5A9 9 0 0 1 3.5 3M19.5 7.5A9 9 0 0 0 20.5 3"></path>
+      </symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24">
+        <path d="M7.2 18.5h9.5a3.8 3.8 0 0 0 .5-7.6 5.7 5.7 0 0 0-10.9-1.5 4.6 4.6 0 0 0 .9 9.1Z"></path>
+        <path d="M9.5 14.4h5M12 12.3v4.2M10.1 14.9 12 16.8l1.9-1.9"></path>
+      </symbol>
+      <symbol id="i-tablet" viewBox="0 0 24 24">
+        <rect x="4" y="2.5" width="16" height="19" rx="2.4"></rect>
+        <path d="M10.5 18.5h3"></path>
+      </symbol>
+      <symbol id="i-powerbank" viewBox="0 0 24 24">
+        <rect x="7" y="2.5" width="10" height="19" rx="2.5"></rect>
+        <path d="M10 6h4M9.5 17.5h5M10.4 12.8l1.8-3.6v2.8h1.7l-2 3.6v-2.8Z"></path>
+      </symbol>
+      <symbol id="i-headphones" viewBox="0 0 24 24">
+        <path d="M4.5 13a7.5 7.5 0 0 1 15 0"></path>
+        <rect x="3.5" y="12.5" width="4" height="7.5" rx="2"></rect>
+        <rect x="16.5" y="12.5" width="4" height="7.5" rx="2"></rect>
+      </symbol>
+      <symbol id="i-desktop" viewBox="0 0 24 24">
+        <rect x="4" y="3" width="9" height="18" rx="2"></rect>
+        <path d="M7 7h.01M7 11h.01M7 15h.01M8.5 18h2M16 6h4.5v10H16M16 11h4.5M15 21h8"></path>
+      </symbol>
+      <symbol id="i-bus" viewBox="0 0 24 24">
+        <rect x="4" y="3.5" width="16" height="14.5" rx="3"></rect>
+        <path d="M4 10h16M9 21l1-3M15 21l-1-3M7.5 14.5h.01M16.5 14.5h.01"></path>
+        <circle cx="7.5" cy="14.5" r="1" fill="currentColor" stroke="none"></circle>
+        <circle cx="16.5" cy="14.5" r="1" fill="currentColor" stroke="none"></circle>
+      </symbol>
+      <symbol id="i-plane" viewBox="0 0 24 24">
+        <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16Z" fill="currentColor" stroke="none"></path>
+      </symbol>
+      <symbol id="i-evcar" viewBox="0 0 24 24">
+        <path d="M4 16.2v-4.4l1.8-4.3A2 2 0 0 1 7.6 6.3h8.8a2 2 0 0 1 1.8 1.2l1.8 4.3v4.4"></path>
+        <path d="M3.5 12.3h17M5 16.2h14M7 19.5v-2.2m10 2.2v-2.2"></path>
+        <path d="m12.7 7.7-2 3.4h2.6l-1.2 3"></path>
+      </symbol>
+      <symbol id="i-fuelcar" viewBox="0 0 24 24">
+        <path d="M4 16.2v-4.4l1.8-4.3A2 2 0 0 1 7.6 6.3h8.8a2 2 0 0 1 1.8 1.2l1.8 4.3v4.4"></path>
+        <path d="M3.5 12.3h17M5 16.2h14M7 19.5v-2.2m10 2.2v-2.2"></path>
+        <path d="M12 7.2c1.2 1.4 1.8 2.4 1.8 3.2a1.8 1.8 0 0 1-3.6 0c0-.8.6-1.8 1.8-3.2Z"></path>
+      </symbol>
+      <symbol id="i-heater" viewBox="0 0 24 24">
+        <rect x="6" y="2.5" width="12" height="19" rx="3"></rect>
+        <path d="M9 7h6M9 10h6M9 13h6M9 16h6M4 8h2M4 16h2"></path>
+      </symbol>
+      <symbol id="i-fridge" viewBox="0 0 24 24">
+        <rect x="5" y="2.5" width="14" height="19" rx="2.5"></rect>
+        <path d="M5 10h14M9 6.5v1.8M9 13v2.5"></path>
+      </symbol>
+      <symbol id="i-washer" viewBox="0 0 24 24">
+        <rect x="4" y="2.5" width="16" height="19" rx="3"></rect>
+        <circle cx="12" cy="14" r="4.2"></circle>
+        <path d="M8 6.5h.01M11 6.5h.01M14 6.5h.01"></path>
+      </symbol>
+      <symbol id="i-wifi" viewBox="0 0 24 24">
+        <path d="M3.5 9.2a13 13 0 0 1 17 0M6.4 12.4a8.6 8.6 0 0 1 11.2 0M9.3 15.5a4.2 4.2 0 0 1 5.4 0"></path>
+        <circle cx="12" cy="18.8" r="1.1" fill="currentColor" stroke="none"></circle>
+      </symbol>
+      <symbol id="i-laptop" viewBox="0 0 24 24">
+        <rect x="4" y="4.5" width="16" height="11" rx="2"></rect>
+        <path d="M2.5 18.5h19l-1.4-3H3.9l-1.4 3Z"></path>
+      </symbol>
+      <symbol id="i-tv" viewBox="0 0 24 24">
+        <rect x="3" y="4.5" width="18" height="12" rx="2"></rect>
+        <path d="M9 20.5h6M12 16.5v4"></path>
+      </symbol>
+      <symbol id="i-snow" viewBox="0 0 24 24">
+        <path d="M12 2.5v19M4.2 7.2l15.6 9.6M19.8 7.2 4.2 16.8M12 6l2.7-2.2M12 6 9.3 3.8M12 18l2.7 2.2M12 18l-2.7 2.2M5.7 10.2 3.2 9.4M5.7 13.8l-2.5.8M18.3 10.2l2.5-.8M18.3 13.8l2.5.8"></path>
+      </symbol>
+      <symbol id="i-train" viewBox="0 0 24 24">
+        <rect x="5" y="3" width="14" height="15" rx="3"></rect>
+        <path d="M5 11.5h14M9 21l2-3M15 21l-2-3M8.5 7h7M8.5 14.5h.01M15.5 14.5h.01"></path>
+        <circle cx="8.5" cy="14.5" r=".8" fill="currentColor" stroke="none"></circle>
+        <circle cx="15.5" cy="14.5" r=".8" fill="currentColor" stroke="none"></circle>
+      </symbol>
+      <symbol id="i-bike" viewBox="0 0 24 24">
+        <circle cx="5.8" cy="17" r="3.2"></circle>
+        <circle cx="18.2" cy="17" r="3.2"></circle>
+        <path d="m5.8 17 4.1-7.4h4.3l4 7.4M10 9.6H7.2M13.8 9.6l4.4 7.4M9 6.2h4"></path>
+      </symbol>
+      <symbol id="i-car" viewBox="0 0 24 24">
+        <path d="M4 16.2v-4.4l1.8-4.3A2 2 0 0 1 7.6 6.3h8.8a2 2 0 0 1 1.8 1.2l1.8 4.3v4.4"></path>
+        <path d="M3.5 12.3h17M5 16.2h14M7 19.5v-2.2m10 2.2v-2.2"></path>
+        <circle cx="7.5" cy="14.2" r="1" fill="currentColor" stroke="none"></circle>
+        <circle cx="16.5" cy="14.2" r="1" fill="currentColor" stroke="none"></circle>
+      </symbol>
+      <symbol id="i-info" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M12 10.6V17M12 7.2h.01"></path>
+      </symbol>
+      <symbol id="i-close" viewBox="0 0 24 24">
+        <path d="m6.5 6.5 11 11m0-11-11 11"></path>
+      </symbol>
+      <symbol id="i-reset" viewBox="0 0 24 24">
+        <path d="M4.7 9.6A8.1 8.1 0 1 1 5 15.4M4.7 4.6v5h5"></path>
+      </symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24">
+        <path d="m12 2.4 1.7 6.2 6.2 1.7-6.2 1.7L12 18.2l-1.7-6.2L4.1 10.3l6.2-1.7L12 2.4Z" fill="currentColor" stroke="none"></path>
+        <path d="m18.5 16 .7 2.4 2.4.7-2.4.7-.7 2.4-.7-2.4-2.4-.7 2.4-.7.7-2.4Z" fill="currentColor" stroke="none"></path>
+      </symbol>
+      <symbol id="i-leaf" viewBox="0 0 24 24">
+        <path d="M20.2 3.8c-8.9-.2-14.8 3.7-14.8 10.4a5.2 5.2 0 0 0 5.2 5.2c6.8 0 9.8-5.7 9.6-15.6Z"></path>
+        <path d="M4.2 20.2c2.6-4.5 6.1-7.7 11.2-10.2"></path>
+      </symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24">
+        <rect x="4.5" y="10" width="15" height="10.5" rx="2.4"></rect>
+        <path d="M8 10V7.7a4 4 0 0 1 8 0V10M12 14v3"></path>
+      </symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="6.3"></circle>
+        <circle cx="12" cy="12" r="2.7"></circle>
+        <rect x="10.8" y="2.2" width="2.4" height="3.8" rx="0.6"></rect>
+        <rect x="10.8" y="18" width="2.4" height="3.8" rx="0.6"></rect>
+        <rect x="2.2" y="10.8" width="3.8" height="2.4" rx="0.6"></rect>
+        <rect x="18" y="10.8" width="3.8" height="2.4" rx="0.6"></rect>
+        <rect x="10.8" y="2.2" width="2.4" height="3.8" rx="0.6" transform="rotate(45 12 12)"></rect>
+        <rect x="10.8" y="2.2" width="2.4" height="3.8" rx="0.6" transform="rotate(135 12 12)"></rect>
+        <rect x="10.8" y="2.2" width="2.4" height="3.8" rx="0.6" transform="rotate(225 12 12)"></rect>
+        <rect x="10.8" y="2.2" width="2.4" height="3.8" rx="0.6" transform="rotate(315 12 12)"></rect>
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 24 24">
+        <path d="m5 12.5 4.2 4.2L19 7"></path>
+      </symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24">
+        <path d="m7 10 5 5 5-5"></path>
+      </symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24">
+        <path d="M5 12h14"></path>
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14"></path>
+      </symbol>
+    </defs>
+  </svg>
+
+  <script src="model.js"></script>
+  <script src="app.js"></script>
+  <script>
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  }
+  </script>
+</body>
+</html>

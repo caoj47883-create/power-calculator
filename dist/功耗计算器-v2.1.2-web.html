@@ -1,0 +1,5517 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-tab="body">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f4ee">
+  <meta name="color-scheme" content="light">
+  <title>功耗计算器</title>
+  <style>
+/* 功耗计算器 — warm editorial light theme */
+:root {
+  --bg: #f7f4ee;
+  --bg-raised: #fffdfa;
+  --surface: #fffdfa;
+  --surface-soft: #f5f0e7;
+  --surface-strong: #eee7db;
+  --line: rgba(38, 30, 22, 0.09);
+  --line-strong: rgba(38, 30, 22, 0.15);
+  --text: #201c17;
+  --ink: #201c17;
+  --muted: #766d61;
+  --dim: #a2988b;
+  --body-rgb: 108, 141, 74;
+  --device-rgb: 36, 130, 162;
+  --transit-rgb: 183, 110, 45;
+  --overview-rgb: 205, 77, 55;
+  --blue-rgb: 21, 155, 185;
+  --body: rgb(var(--body-rgb));
+  --device: rgb(var(--device-rgb));
+  --transit: rgb(var(--transit-rgb));
+  --overview: rgb(var(--overview-rgb));
+  --blue: rgb(var(--blue-rgb));
+  --blue-strong: #0b7894;
+  --blue-soft: #e9f7fb;
+  --blue-line: #c8edf6;
+  --accent: var(--body);
+  --accent-rgb: var(--body-rgb);
+  --mood-rgb: 198, 222, 184;
+  --page-top: #faf8f3;
+  --page-bg: #f7f4ee;
+  --font: "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  --shadow: 0 8px 26px rgba(76, 56, 31, 0.055);
+  --shadow-soft: 0 4px 16px rgba(76, 56, 31, 0.045);
+}
+
+html[data-tab="body"] {
+  --accent: var(--body);
+  --accent-rgb: var(--body-rgb);
+}
+
+html[data-tab="device"] {
+  --accent: var(--device);
+  --accent-rgb: var(--device-rgb);
+}
+
+html[data-tab="transit"] {
+  --accent: var(--transit);
+  --accent-rgb: var(--transit-rgb);
+}
+
+html[data-tab="overview"] {
+  --accent: var(--overview);
+  --accent-rgb: var(--overview-rgb);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  color-scheme: light;
+  background: var(--page-bg);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--page-bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgba(var(--blue-rgb), 0.22);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.svg-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Background washes: always light, even at the highest energy values. */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(85% 52% at 50% -16%, rgba(var(--mood-rgb), 0.58), transparent 69%),
+    radial-gradient(54% 34% at 102% 6%, rgba(var(--blue-rgb), 0.075), transparent 72%),
+    var(--page-bg);
+}
+
+.ambient::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 34%, transparent 78%, rgba(66, 48, 26, 0.025));
+  pointer-events: none;
+}
+
+.app {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 560px;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0 auto;
+  padding: 12px 18px 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 480ms ease, transform 480ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+html.is-ready .app {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Hero */
+.hero {
+  position: relative;
+  flex: 0 0 auto;
+  overflow: hidden;
+  margin: 0 0 12px;
+  padding: 18px 18px 15px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 28px;
+  background:
+    radial-gradient(105% 125% at 100% 0%, rgba(255, 255, 255, 0.8), transparent 54%),
+    linear-gradient(136deg, rgba(var(--mood-rgb), 0.98) 0%, rgba(var(--mood-rgb), 0.72) 58%, rgba(var(--mood-rgb), 0.5) 100%);
+  box-shadow: 0 14px 36px rgba(80, 59, 32, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.62);
+  color: var(--ink);
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -74px;
+  right: -62px;
+  width: 222px;
+  height: 222px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  background: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  right: 51px;
+  bottom: 42px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb), 0.72);
+  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+}
+
+.hero-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 62%;
+  padding: 6px 10px 6px 8px;
+  border-radius: 99px;
+  background: var(--ink);
+  color: #fffdf8;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.eyebrow > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: #7de3f6;
+  box-shadow: 0 0 0 3px rgba(125, 227, 246, 0.18);
+}
+
+.hero-tools {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.hero-settings-button,
+.hero-info-button {
+  width: 31px;
+  height: 31px;
+  flex-basis: 31px;
+}
+
+.hero-settings-button .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.hero-date {
+  color: rgba(32, 28, 23, 0.55);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.round-button {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(32, 28, 23, 0.13);
+  border-radius: 50%;
+  background: rgba(255, 253, 249, 0.5);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.round-button .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.round-button:active {
+  transform: scale(0.94);
+  background: var(--surface);
+}
+
+.hero-info-button {
+  width: 31px;
+  height: 31px;
+  flex-basis: 31px;
+}
+
+.hero-info-button .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.hero-main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.total-block {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  line-height: 1;
+}
+
+.total-number {
+  display: inline-block;
+  color: var(--ink);
+  font-size: clamp(52px, 14vw, 62px);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.07em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.total-unit {
+  margin-left: 7px;
+  color: rgba(32, 28, 23, 0.48);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+}
+
+.power-block {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  padding: 7px 10px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 13px;
+  background: rgba(255, 253, 249, 0.43);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.power-block span {
+  color: rgba(32, 28, 23, 0.55);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.power-block strong {
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.equivalents {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(32, 28, 23, 0.11);
+  color: rgba(32, 28, 23, 0.62);
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.005em;
+}
+
+.equivalents b {
+  margin: 0 2px;
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-overview {
+  position: relative;
+  z-index: 1;
+  margin-top: 12px;
+}
+
+.energy-bar {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(255, 253, 249, 0.62);
+}
+
+.bar-seg {
+  display: block;
+  width: 0;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 99px;
+  transition: width 380ms cubic-bezier(0.2, 0.7, 0.3, 1), opacity 250ms ease;
+}
+
+.bar-seg.is-empty {
+  min-width: 0;
+  opacity: 0;
+}
+
+.seg-body {
+  background: var(--body);
+}
+
+.seg-device {
+  background: var(--device);
+}
+
+.seg-transit {
+  background: var(--transit);
+}
+
+.energy-legend {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(32, 28, 23, 0.56);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.legend-item b {
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend-item:active,
+.legend-item.is-active {
+  color: var(--ink);
+}
+
+.legend-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+}
+
+.dot-body {
+  background: var(--body);
+}
+
+.dot-device {
+  background: var(--device);
+}
+
+.dot-transit {
+  background: var(--transit);
+}
+
+.legend-unit {
+  margin-left: auto;
+  color: rgba(32, 28, 23, 0.42);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+/* Scrollable stage */
+.stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px 1px 8px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.stage::-webkit-scrollbar {
+  display: none;
+}
+
+.panel {
+  display: none;
+  padding: 0 0 18px;
+}
+
+.panel.is-active {
+  display: block;
+  animation: panel-in 320ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.panel[data-panel="body"] {
+  --accent-rgb: var(--body-rgb);
+  --accent: var(--body);
+}
+
+.panel[data-panel="device"] {
+  --accent-rgb: var(--device-rgb);
+  --accent: var(--device);
+}
+
+.panel[data-panel="transit"] {
+  --accent-rgb: var(--transit-rgb);
+  --accent: var(--transit);
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Cards */
+.card {
+  margin-bottom: 11px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 23px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.profile-card {
+  padding: 18px;
+}
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-head.compact {
+  align-items: center;
+}
+
+.card-title {
+  min-width: 0;
+}
+
+.card-title h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.card-title p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.value-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 6px 10px;
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  border-radius: 12px;
+  background: rgba(var(--accent-rgb), 0.075);
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.value-pill b {
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.range-divider {
+  height: 1px;
+  margin: 15px 0 13px;
+  background: var(--line);
+}
+
+/* Sliders */
+input[type="range"].range {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 30px;
+  margin: 3px 0 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+input[type="range"].range::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 99px;
+  background:
+    linear-gradient(90deg,
+      var(--accent) 0%,
+      var(--accent) var(--pct, 50%),
+      #ebe5db var(--pct, 50%),
+      #ebe5db 100%);
+}
+
+input[type="range"].range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -8px;
+  border: 3px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 2px 7px rgba(63, 45, 24, 0.2);
+  cursor: grab;
+  transition: transform 130ms ease, box-shadow 130ms ease;
+}
+
+input[type="range"].range:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.08);
+  box-shadow: 0 3px 10px rgba(63, 45, 24, 0.24);
+}
+
+input[type="range"].range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px var(--surface), 0 0 0 6px var(--blue), 0 3px 10px rgba(63, 45, 24, 0.24);
+}
+
+input[type="range"].range::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 99px;
+  background: #ebe5db;
+}
+
+input[type="range"].range::-moz-range-progress {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--accent);
+}
+
+input[type="range"].range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 2px 7px rgba(63, 45, 24, 0.2);
+}
+
+.range-ends {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 1px;
+  color: #958b7d;
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+.range-ends span:nth-child(2) {
+  text-align: center;
+}
+
+.range-ends span:last-child {
+  text-align: right;
+}
+
+/* Stats / step metrics */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-bottom: 11px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 14px 12px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  background: #f2ece1;
+}
+
+.stat-accent {
+  border-color: rgba(var(--accent-rgb), 0.13);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.stat-value {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  color: var(--ink);
+  font-size: 27px;
+  font-weight: 780;
+  line-height: 1;
+  letter-spacing: -0.055em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-accent .stat-value {
+  color: var(--accent);
+}
+
+.stat-value small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.stat-accent .stat-value small {
+  color: rgba(var(--accent-rgb), 0.72);
+}
+
+.stat-note {
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-accent .stat-note {
+  color: rgba(var(--accent-rgb), 0.78);
+}
+
+.step-card .card-title p {
+  max-width: 240px;
+}
+
+.step-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 11px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+
+.step-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.step-metric strong {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 760;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.step-metric strong small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.step-metric > span {
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.2;
+}
+
+.step-metric.is-accent strong {
+  color: var(--accent);
+}
+
+.step-metric.is-accent strong small {
+  color: rgba(var(--accent-rgb), 0.68);
+}
+
+.profile-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.profile-meta b {
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-card .range-divider {
+  margin: 13px 0 11px;
+}
+
+.profile-summary-card {
+  padding: 17px 18px;
+}
+
+.profile-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-summary-copy {
+  min-width: 0;
+}
+
+.profile-summary-copy .kicker {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+.profile-summary-copy h3 {
+  margin: 6px 0 4px;
+  color: var(--ink);
+  font-size: 21px;
+  font-weight: 780;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+
+.profile-summary-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.profile-summary-copy p b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.ghost-button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ghost-button:active {
+  background: var(--surface-strong);
+}
+
+.hint {
+  margin: 11px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.hint b {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Intensity presets: blue is the action color, borrowed from Lanfan. */
+.intensity-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.intensity-preset {
+  flex: 1 1 calc(33.333% - 6px);
+  min-width: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #faf7f1;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.intensity-preset b {
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.intensity-preset:active {
+  transform: scale(0.98);
+}
+
+.intensity-preset.is-active {
+  border-color: var(--blue-line);
+  background: var(--blue-soft);
+  color: var(--blue-strong);
+}
+
+.intensity-preset.is-active b {
+  color: var(--blue-strong);
+}
+
+.intensity-presets + .hint {
+  margin-top: 9px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* Section headings */
+.list-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 1px 2px 9px;
+}
+
+.list-heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.list-heading span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.list-heading.spaced {
+  margin-top: 19px;
+}
+
+#fixedSubtotal,
+#applianceSubtotal,
+#travelSubtotal {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-group-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 2px 7px;
+}
+
+.trip-group-label span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.trip-group-label em {
+  color: var(--dim);
+  font-size: 9px;
+  font-style: normal;
+}
+
+/* Device and travel cards */
+.device-list,
+.appliance-list,
+.trip-list,
+.trip-input-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.trip-input-list {
+  margin-bottom: 11px;
+}
+
+.device-card,
+.trip-card,
+.trip-input-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 21px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.device-top,
+.trip-top,
+.trip-input-top {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.trip-input-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.trip-input-controls > strong {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.step-presets {
+  margin-top: 9px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.device-icon,
+.trip-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.device-icon .icon,
+.trip-icon .icon {
+  width: 19px;
+  height: 19px;
+}
+
+.device-copy,
+.trip-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.device-copy h3,
+.trip-copy h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.device-copy p,
+.trip-copy p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-toggle {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, opacity 160ms ease;
+}
+
+.item-toggle .icon {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.6;
+}
+
+.item-toggle.is-checked {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fffdf8;
+}
+
+.item-toggle.is-locked {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fffdf8;
+  box-shadow: 0 0 0 3px rgba(var(--blue-rgb), 0.12);
+}
+
+.item-toggle.is-locked .icon {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.2;
+}
+
+.device-card.is-fixed input[type="range"],
+.appliance-card.is-fixed input[type="range"],
+.trip-card.is-fixed input[type="range"],
+.trip-input-card.is-fixed [data-trip-number] {
+  opacity: 0.5;
+}
+
+.device-card.is-fixed .slider-output,
+.appliance-card.is-fixed .slider-output,
+.trip-card.is-fixed .slider-output {
+  opacity: 0.65;
+}
+
+.item-toggle:disabled {
+  cursor: not-allowed;
+}
+
+.extra-list {
+  margin-top: 9px;
+}
+
+.section-expand {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 9px 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 17px;
+  background: rgba(255, 253, 249, 0.4);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.section-expand > span {
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 650;
+}
+
+.section-expand em {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+}
+
+.section-expand .icon {
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+  transition: transform 200ms ease;
+}
+
+.section-expand.is-open .icon {
+  transform: rotate(180deg);
+}
+
+.device-energy {
+  flex: 0 0 auto;
+  text-align: right;
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.device-energy small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(var(--accent-rgb), 0.62);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.device-card .slider-head,
+.trip-card .slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 11px;
+}
+
+.device-slider-head.second {
+  margin-top: 10px;
+}
+
+.slider-label {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.slider-output {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.device-card .range,
+.trip-card .range {
+  height: 28px;
+  margin-top: 1px;
+}
+
+.device-card input[type="range"].range::-webkit-slider-runnable-track,
+.trip-card input[type="range"].range::-webkit-slider-runnable-track {
+  height: 7px;
+}
+
+.device-card input[type="range"].range::-webkit-slider-thumb,
+.trip-card input[type="range"].range::-webkit-slider-thumb {
+  width: 22px;
+  height: 22px;
+  margin-top: -7.5px;
+}
+
+.device-foot,
+.trip-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.3;
+}
+
+.device-foot strong,
+.trip-foot strong {
+  color: var(--ink);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.device-foot span,
+.trip-foot span {
+  font-variant-numeric: tabular-nums;
+}
+
+.device-card.is-off,
+.trip-card.is-off,
+.trip-input-card.is-off {
+  opacity: 0.64;
+}
+
+.device-card.is-off .range,
+.trip-card.is-off .range {
+  opacity: 0.6;
+}
+
+.trip-energy {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.trip-energy small {
+  margin-left: 2px;
+  color: rgba(var(--accent-rgb), 0.62);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+/* Kilometer input cards */
+.trip-number {
+  box-sizing: border-box;
+  flex: 0 0 82px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: 82px;
+  padding: 3px 8px;
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  border-radius: 11px;
+  background: rgba(var(--accent-rgb), 0.06);
+}
+
+.trip-number input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-number input::-webkit-outer-spin-button,
+.trip-number input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.trip-number span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.trip-input-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 9.5px;
+}
+
+.trip-input-foot strong {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fixed surrounding list */
+.fixed-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 21px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.fixed-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 14px;
+}
+
+.fixed-row + .fixed-row {
+  border-top: 1px solid var(--line);
+}
+
+.fixed-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--transit);
+  background: rgba(var(--transit-rgb), 0.1);
+}
+
+.fixed-icon .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.fixed-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fixed-copy h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.fixed-copy p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.35;
+}
+
+.fixed-energy {
+  flex: 0 0 auto;
+  text-align: right;
+  color: var(--transit);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fixed-energy small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(var(--transit-rgb), 0.62);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+/* Tips and insight */
+.tip-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 9px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(38, 30, 22, 0.12);
+  border-radius: 14px;
+  color: var(--muted);
+  background: rgba(255, 253, 249, 0.46);
+}
+
+.tip-card .icon {
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  color: var(--dim);
+}
+
+.tip-card p {
+  margin: 0;
+  font-size: 9.5px;
+  line-height: 1.6;
+}
+
+.insight-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px 13px;
+  border: 1px solid var(--blue-line);
+  border-radius: 17px;
+  background: var(--blue-soft);
+}
+
+.insight-icon {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--blue-strong);
+  background: rgba(var(--blue-rgb), 0.11);
+}
+
+.insight-icon .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.insight-card p {
+  margin: 2px 0 0;
+  color: #4b5d63;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.insight-card p b {
+  color: var(--blue-strong);
+  font-weight: 700;
+}
+
+/* Overview */
+.overview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.overview-item {
+  --item-rgb: var(--body-rgb);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 21px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+
+.overview-device {
+  --item-rgb: var(--device-rgb);
+}
+
+.overview-transit {
+  --item-rgb: var(--transit-rgb);
+}
+
+.overview-item:active {
+  transform: scale(0.992);
+  background: rgba(var(--item-rgb), 0.045);
+}
+
+.overview-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: rgb(var(--item-rgb));
+  background: rgba(var(--item-rgb), 0.1);
+}
+
+.overview-icon .icon {
+  width: 19px;
+  height: 19px;
+}
+
+.overview-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.overview-copy strong {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.overview-copy small {
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.3;
+}
+
+.overview-value {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  width: 80px;
+  column-gap: 2px;
+  color: rgb(var(--item-rgb));
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.overview-value strong {
+  font-size: 18px;
+  font-weight: 760;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.overview-value small {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.overview-value em {
+  flex-basis: 100%;
+  margin-top: 3px;
+  color: rgba(var(--item-rgb), 0.76);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.overview-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 11px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: rgba(255, 253, 249, 0.54);
+}
+
+.overview-callout-icon {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--muted);
+  background: var(--surface-soft);
+}
+
+.overview-callout-icon .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.overview-callout p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.overview-callout p b {
+  color: var(--overview);
+  font-weight: 700;
+}
+
+/* Overview grade card */
+.grade-card {
+  --grade-rgb: var(--blue-rgb);
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 12px;
+  padding: 14px 15px;
+  border: 1px solid rgba(var(--grade-rgb), 0.16);
+  border-radius: 23px;
+  background:
+    linear-gradient(135deg, rgba(var(--grade-rgb), 0.08), transparent 62%),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.grade-card[data-level="1"] {
+  --grade-rgb: var(--body-rgb);
+}
+
+.grade-card[data-level="2"] {
+  --grade-rgb: var(--device-rgb);
+}
+
+.grade-card[data-level="3"] {
+  --grade-rgb: var(--blue-rgb);
+}
+
+.grade-card[data-level="4"] {
+  --grade-rgb: var(--transit-rgb);
+}
+
+.grade-card[data-level="5"] {
+  --grade-rgb: var(--overview-rgb);
+}
+
+.grade-stamp {
+  position: relative;
+  width: 57px;
+  height: 57px;
+  flex: 0 0 57px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: rgb(var(--grade-rgb));
+  background: rgba(var(--grade-rgb), 0.12);
+}
+
+.grade-stamp .icon {
+  width: 24px;
+  height: 24px;
+}
+
+.grade-stamp b {
+  position: absolute;
+  right: -3px;
+  bottom: -2px;
+  min-width: 23px;
+  padding: 2px 5px;
+  border: 1px solid var(--surface);
+  border-radius: 99px;
+  background: var(--ink);
+  color: #fffdf8;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.grade-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.grade-kicker {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+
+.grade-copy h3 {
+  margin: 3px 0 3px;
+  color: rgb(var(--grade-rgb));
+  font-size: 22px;
+  font-weight: 780;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.grade-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.grade-line {
+  margin: 5px 0 0;
+  color: rgb(var(--grade-rgb));
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+}
+
+.grade-metric {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+}
+
+.grade-scale {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 35px;
+}
+
+.grade-scale i {
+  display: block;
+  width: 4px;
+  height: 12px;
+  border-radius: 99px;
+  background: #e8e1d6;
+  transition: background 220ms ease;
+}
+
+.grade-scale i:nth-child(2) {
+  height: 18px;
+}
+
+.grade-scale i:nth-child(3) {
+  height: 24px;
+}
+
+.grade-scale i:nth-child(4) {
+  height: 30px;
+}
+
+.grade-scale i:nth-child(5) {
+  height: 36px;
+}
+
+.grade-scale i.is-on {
+  background: rgb(var(--grade-rgb));
+}
+
+/* Seven-day history */
+.history-heading {
+  margin-top: 20px;
+}
+
+.history-card {
+  padding: 15px 14px 13px;
+  border: 1px solid var(--line);
+  border-radius: 23px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.history-bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  align-items: end;
+}
+
+.history-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.history-bar-track {
+  width: 100%;
+  max-width: 23px;
+  height: 78px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #f2ede4;
+}
+
+.history-bar-fill {
+  display: block;
+  width: 100%;
+  height: 0;
+  border-radius: 8px;
+  background: var(--body);
+  transition: height 280ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.history-day[data-level="1"] .history-bar-fill {
+  background: var(--body);
+}
+
+.history-day[data-level="2"] .history-bar-fill {
+  background: var(--device);
+}
+
+.history-day[data-level="3"] .history-bar-fill {
+  background: var(--blue);
+}
+
+.history-day[data-level="4"] .history-bar-fill {
+  background: var(--transit);
+}
+
+.history-day[data-level="5"] .history-bar-fill {
+  background: var(--overview);
+}
+
+.history-day:not(.has-record) .history-bar-track {
+  background: #f7f2e9;
+}
+
+.history-day.is-today .history-bar-track {
+  box-shadow: inset 0 0 0 1.5px rgba(var(--overview-rgb), 0.32);
+}
+
+.history-date {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.history-day.is-today .history-date {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.history-caption {
+  margin: 11px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.5;
+}
+
+/* Bottom navigation: clean white, black active, like a cookbook app. */
+.tabbar {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+  height: 67px;
+  margin: 2px 0 max(11px, env(safe-area-inset-bottom));
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 23px;
+  background: rgba(255, 253, 249, 0.9);
+  box-shadow: 0 10px 32px rgba(71, 52, 28, 0.09);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 5px 2px;
+  border: 0;
+  border-radius: 17px;
+  background: transparent;
+  color: #a1988b;
+  cursor: pointer;
+  transition: color 170ms ease, background 170ms ease;
+}
+
+.tab-icon {
+  display: grid;
+  place-items: center;
+  transition: transform 180ms ease;
+}
+
+.tab-icon .icon {
+  width: 21px;
+  height: 21px;
+  stroke-width: 1.7;
+}
+
+.tab-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.tab.is-active {
+  color: var(--ink);
+  background: var(--surface-soft);
+}
+
+.tab.is-active .tab-icon .icon {
+  stroke-width: 2.15;
+}
+
+.tab.is-active .tab-label {
+  font-weight: 700;
+}
+
+.tab:active {
+  background: var(--surface-strong);
+}
+
+/* Modal / info sheet */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 240ms ease, visibility 240ms ease;
+}
+
+.modal.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(36, 29, 21, 0.34);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+
+.sheet {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  max-height: 88vh;
+  max-height: 88dvh;
+  overflow: hidden;
+  padding: 9px 20px calc(12px + env(safe-area-inset-bottom));
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-bottom: 0;
+  border-radius: 29px 29px 0 0;
+  background: var(--surface);
+  box-shadow: 0 -20px 70px rgba(47, 35, 22, 0.2);
+  opacity: 0;
+  transform: translateY(28px);
+  transition: transform 280ms cubic-bezier(0.2, 0.7, 0.3, 1), opacity 220ms ease;
+}
+
+.modal.is-open .sheet {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sheet-grab {
+  flex: 0 0 auto;
+  width: 37px;
+  height: 4px;
+  margin: 1px auto 16px;
+  border-radius: 99px;
+  background: #e4ddd2;
+}
+
+.sheet-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kicker {
+  display: block;
+  color: var(--blue-strong);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.18em;
+  line-height: 1.2;
+}
+
+.sheet-head h2 {
+  margin: 6px 0 0;
+  color: var(--ink);
+  font-size: 25px;
+  font-weight: 780;
+  line-height: 1.16;
+  letter-spacing: -0.04em;
+}
+
+.sheet-head .round-button {
+  width: 33px;
+  height: 33px;
+  flex-basis: 33px;
+  background: var(--surface-soft);
+  border-color: transparent;
+}
+
+.sheet-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 -2px;
+  padding: 0 2px 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.sheet-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.sheet-lead {
+  margin: 12px 0 16px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.75;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.profile-settings-extra {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.profile-settings-extra[hidden] {
+  display: none;
+}
+
+.settings-section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.settings-section-title span {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-section-title em {
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+}
+
+.config-lock-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: #faf7f1;
+}
+
+.config-lock-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.config-lock-copy b {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.config-lock-copy small {
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.4;
+}
+
+.switch {
+  position: relative;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 99px;
+  background: var(--line-strong);
+  cursor: pointer;
+  transition: background 180ms ease;
+}
+
+.switch span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fffdf8;
+  box-shadow: 0 1px 4px rgba(32, 28, 23, 0.22);
+  transition: transform 180ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.switch.is-on {
+  background: var(--blue);
+}
+
+.switch.is-on span {
+  transform: translateX(18px);
+}
+
+.switch:focus-visible {
+  outline: 2px solid rgba(var(--blue-rgb), 0.65);
+  outline-offset: 3px;
+}
+
+.profile-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: #faf7f1;
+}
+
+.profile-field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.profile-field-label b {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.profile-field-label small {
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.35;
+}
+
+.profile-input {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid rgba(var(--blue-rgb), 0.2);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.profile-input input {
+  width: 70px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 24px;
+  font-weight: 780;
+  line-height: 1.1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-input input::-webkit-outer-spin-button,
+.profile-input input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.profile-input em {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-style: normal;
+}
+
+.profile-sheet .sheet-footer {
+  display: flex;
+  margin-top: 10px;
+}
+
+.profile-sheet .btn-primary {
+  width: 100%;
+  flex: 1;
+}
+
+.profile-modal.is-onboarding .sheet-grab {
+  margin-bottom: 20px;
+}
+
+.formula-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.formula-card {
+  position: relative;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: #f7f2e9;
+}
+
+.formula-index {
+  position: absolute;
+  top: 11px;
+  right: 12px;
+  color: var(--dim);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.formula-card h3 {
+  margin: 0 0 4px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.formula-card p {
+  margin: 0;
+  padding-right: 18px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.65;
+}
+
+.section-title {
+  margin: 20px 0 8px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.assumptions {
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+
+.assumptions > div {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.assumptions dt {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.assumptions dd {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.note-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 11px;
+  border-radius: 14px;
+  background: #f7f2e9;
+  color: var(--muted);
+}
+
+.note-block.quiet {
+  background: transparent;
+  border: 1px dashed var(--line-strong);
+}
+
+.note-block .icon {
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+  flex: 0 0 14px;
+}
+
+.note-block p {
+  margin: 0;
+  font-size: 9.5px;
+  line-height: 1.65;
+}
+
+.sheet-footer {
+  flex: 0 0 auto;
+  margin-top: 9px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.sheet-actions {
+  display: flex;
+  gap: 9px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 45px;
+  padding: 0 15px;
+  border-radius: 15px;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: transform 150ms ease, opacity 150ms ease, background 150ms ease;
+}
+
+.btn:active {
+  transform: scale(0.975);
+}
+
+.btn .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.btn-primary {
+  flex: 1.2;
+  border: 0;
+  color: #fff;
+  background: var(--blue);
+  box-shadow: 0 8px 20px rgba(var(--blue-rgb), 0.2);
+}
+
+.btn-ghost {
+  flex: 1;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+.version {
+  margin: 9px 0 0;
+  color: var(--dim);
+  font-size: 9px;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+/* Toast: ink on a light interface. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  z-index: 60;
+  max-width: calc(100% - 44px);
+  padding: 10px 15px;
+  border-radius: 99px;
+  background: #2b2620;
+  box-shadow: 0 10px 30px rgba(47, 35, 21, 0.22);
+  color: #fffdf8;
+  font-size: 10.5px;
+  line-height: 1.3;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 7px);
+  pointer-events: none;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Focus */
+button:focus-visible,
+input:focus-visible,
+.sheet:focus-visible {
+  outline: 2px solid rgba(var(--blue-rgb), 0.8);
+  outline-offset: 2px;
+}
+
+/* Tablet framing */
+@media (min-width: 620px) {
+  .app {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+
+  .modal {
+    align-items: center;
+    padding: 24px;
+  }
+
+  .sheet {
+    max-width: 540px;
+    max-height: 84vh;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 29px;
+    padding-bottom: 20px;
+  }
+
+  .formula-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .formula-card {
+    min-height: 118px;
+  }
+
+  .formula-card p {
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 350px) {
+  .app {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .hero {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  .total-number {
+    font-size: 51px;
+  }
+
+  .power-block {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .power-block strong {
+    font-size: 16px;
+  }
+
+  .energy-legend {
+    gap: 9px;
+  }
+
+  .tab {
+    gap: 1px;
+  }
+
+  .tab-label {
+    font-size: 10px;
+  }
+
+  .stat {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .stat-value {
+    font-size: 25px;
+  }
+}
+
+@media (max-height: 700px) {
+  .app {
+    padding-top: 9px;
+  }
+
+  .hero {
+    padding-top: 15px;
+    padding-bottom: 12px;
+    margin-bottom: 9px;
+  }
+
+  .total-number {
+    font-size: 51px;
+  }
+
+  .hero-main {
+    margin-top: 13px;
+  }
+
+  .equivalents {
+    margin-top: 11px;
+  }
+
+  .hero-overview {
+    margin-top: 9px;
+  }
+
+  .tabbar {
+    height: 63px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Wider phones: keep the playful scale without shrinking back to tiny text. */
+@media (min-width: 360px) {
+  .hero-date { font-size: 10.5px; }
+  .eyebrow { font-size: 11px; }
+  .equivalents { font-size: 11.5px; }
+  .equivalents b { font-size: 12px; }
+  .legend-item { font-size: 10.5px; }
+  .legend-item b { font-size: 11px; }
+  .card-title h3 { font-size: 15.5px; }
+  .card-title p { font-size: 11px; }
+  .value-pill { font-size: 10px; }
+  .value-pill b { font-size: 14.5px; }
+  .range-ends { font-size: 10px; }
+  .hint { font-size: 10.5px; }
+  .list-heading h3 { font-size: 17px; }
+  .list-heading span { font-size: 10.5px; }
+  .device-copy h3,
+  .trip-copy h3 { font-size: 14.5px; }
+  .device-copy p,
+  .trip-copy p { font-size: 10px; }
+  .slider-label { font-size: 10.5px; }
+  .slider-output { font-size: 11.5px; }
+  .device-foot,
+  .trip-foot { font-size: 10px; }
+  .tip-card p { font-size: 10.5px; }
+  .insight-card p { font-size: 10.5px; }
+  .tab-icon .icon { width: 22px; height: 22px; }
+  .tab-label { font-size: 11px; }
+  .sheet-lead { font-size: 11.5px; }
+  .formula-card h3 { font-size: 13.5px; }
+  .formula-card p { font-size: 10.5px; }
+  .section-title { font-size: 15px; }
+  .assumptions dt,
+  .assumptions dd { font-size: 10.5px; }
+  .note-block p { font-size: 10px; }
+  .btn { min-height: 47px; font-size: 12px; }
+  .version { font-size: 9.5px; }
+  .toast { font-size: 11px; }
+}
+
+  </style>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="功耗计算器">
+  <link rel="apple-touch-icon" href="data:image/png;base64,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">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <div class="app" id="app">
+    <section class="hero" id="hero" aria-labelledby="heroLabel">
+      <span class="hero-glow" aria-hidden="true"></span>
+      <span class="hero-ring" aria-hidden="true"></span>
+      <div class="hero-head">
+        <span class="eyebrow" id="heroTitle"><i class="live-dot" aria-hidden="true"></i><span id="heroLabel">自体功耗</span></span>
+        <div class="hero-tools">
+          <span class="hero-date" id="dateLabel">今天</span>
+          <button class="round-button hero-settings-button" id="settingsButton" type="button" aria-label="修改身体资料" aria-haspopup="dialog">
+            <svg class="icon"><use href="#i-settings"></use></svg>
+          </button>
+          <button class="round-button hero-info-button" id="infoButton" type="button" aria-label="查看计算说明" aria-haspopup="dialog">
+            <svg class="icon"><use href="#i-info"></use></svg>
+          </button>
+        </div>
+      </div>
+      <div class="hero-main">
+        <div class="total-block">
+          <span class="total-number" id="heroKwh">0.00</span>
+          <span class="total-unit">kWh</span>
+        </div>
+        <div class="power-block">
+          <span>等效平均功率</span>
+          <strong id="heroAverage">0 W</strong>
+        </div>
+      </div>
+      <div class="equivalents" id="equivalents">
+        <span>相当于完全燃烧 <b id="coalEquivalent">0.00</b> 千克标准煤</span>
+        <span>可供特斯拉 Model X 跑 <b id="teslaEquivalent">0.0</b> km</span>
+      </div>
+      <div class="hero-overview" id="heroOverview" hidden>
+        <div class="energy-bar" id="energyBar" role="img" aria-label="自体、设备、周边能耗占比">
+          <span class="bar-seg seg-body" data-seg="body"></span>
+          <span class="bar-seg seg-device" data-seg="device"></span>
+          <span class="bar-seg seg-transit" data-seg="transit"></span>
+        </div>
+        <div class="energy-legend" aria-label="分类能耗">
+          <button class="legend-item" type="button" data-go-tab="body">
+            <i class="legend-dot dot-body" aria-hidden="true"></i>
+            <span>自体</span>
+            <b id="bodyLegendKwh">0.00</b>
+          </button>
+          <button class="legend-item" type="button" data-go-tab="device">
+            <i class="legend-dot dot-device" aria-hidden="true"></i>
+            <span>设备</span>
+            <b id="deviceLegendKwh">0.00</b>
+          </button>
+          <button class="legend-item" type="button" data-go-tab="transit">
+            <i class="legend-dot dot-transit" aria-hidden="true"></i>
+            <span>周边</span>
+            <b id="transitLegendKwh">0.00</b>
+          </button>
+          <span class="legend-unit">kWh</span>
+        </div>
+      </div>
+    </section>
+
+    <main class="stage" id="stage">
+      <section class="panel is-active" id="panel-body" data-panel="body" role="tabpanel" aria-labelledby="tab-body">
+        <article class="card profile-summary-card">
+          <div class="profile-summary-head">
+            <div class="profile-summary-copy">
+              <span class="kicker">身体资料</span>
+              <h3 id="profileSummary">30 岁 · 170 cm · 68 kg</h3>
+              <p>基础代谢按实际年龄计算 · BMI <b id="bmiOut">23.5</b> · <span id="bmiText">正常</span></p>
+            </div>
+            <button class="ghost-button" id="editProfileButton" type="button">修改</button>
+          </div>
+        </article>
+
+        <div class="stat-grid">
+          <div class="stat">
+            <span class="stat-label">静息功耗</span>
+            <strong class="stat-value"><span id="restPower">0</span><small>W</small></strong>
+            <span class="stat-note">基础代谢水平</span>
+          </div>
+          <div class="stat stat-accent">
+            <span class="stat-label">活动功耗</span>
+            <strong class="stat-value"><span id="activePower">0</span><small>W</small></strong>
+            <span class="stat-note" id="activeState">静坐时</span>
+          </div>
+        </div>
+
+        <article class="card step-card">
+          <div class="card-head">
+            <div class="card-title">
+              <h3>每日步数</h3>
+              <p>按约 100 步/分钟折算为活动时长</p>
+            </div>
+            <output class="value-pill" for="stepsInput"><b id="stepsOut">8,000</b> 步</output>
+          </div>
+          <input class="range" id="stepsInput" type="range" min="0" max="30000" step="50" value="8000" aria-label="每日步数，步进 50 步">
+          <div class="range-ends"><span>0</span><span>15,000</span><span>30,000 步</span></div>
+          <div class="intensity-presets step-presets" aria-label="常用步数">
+            <button class="intensity-preset" type="button" data-steps="3000" aria-pressed="false"><span>轻量</span><b>3,000</b></button>
+            <button class="intensity-preset" type="button" data-steps="5000" aria-pressed="false"><span>通勤</span><b>5,000</b></button>
+            <button class="intensity-preset is-active" type="button" data-steps="8000" aria-pressed="true"><span>日常</span><b>8,000</b></button>
+            <button class="intensity-preset" type="button" data-steps="10000" aria-pressed="false"><span>活跃</span><b>10,000</b></button>
+            <button class="intensity-preset" type="button" data-steps="15000" aria-pressed="false"><span>多走</span><b>15,000</b></button>
+            <button class="intensity-preset" type="button" data-steps="20000" aria-pressed="false"><span>暴走</span><b>20,000</b></button>
+          </div>
+          <div class="step-metrics">
+            <div class="step-metric">
+              <strong><span id="stepDistance">0</span><small>km</small></strong>
+              <span>步行距离</span>
+            </div>
+            <div class="step-metric">
+              <strong><span id="stepMinutes">0</span><small>分钟</small></strong>
+              <span>活动时长</span>
+            </div>
+            <div class="step-metric is-accent">
+              <strong><span id="stepEnergy">0</span><small>kWh</small></strong>
+              <span>活动耗能</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <div class="card-title">
+              <h3>活动强度</h3>
+              <p>0.05 MET 微调，或直接选择常用强度</p>
+            </div>
+            <output class="value-pill" for="metInput"><b id="metOut">4.20</b> MET</output>
+          </div>
+          <input class="range" id="metInput" type="range" min="1" max="12" step="0.05" value="4.2" aria-label="活动强度，单位 MET，步进 0.05">
+          <div class="range-ends"><span>1.0 静坐</span><span>12.0 高强度</span></div>
+          <div class="intensity-presets" aria-label="常用活动强度">
+            <button class="intensity-preset" type="button" data-met="1.3" aria-pressed="false"><span>静坐</span><b>1.3</b></button>
+            <button class="intensity-preset" type="button" data-met="2.5" aria-pressed="false"><span>散步</span><b>2.5</b></button>
+            <button class="intensity-preset is-active" type="button" data-met="4.2" aria-pressed="true"><span>快走</span><b>4.2</b></button>
+            <button class="intensity-preset" type="button" data-met="5.5" aria-pressed="false"><span>慢跑</span><b>5.5</b></button>
+            <button class="intensity-preset" type="button" data-met="7.0" aria-pressed="false"><span>骑行</span><b>7.0</b></button>
+            <button class="intensity-preset" type="button" data-met="10.0" aria-pressed="false"><span>高强度</span><b>10.0</b></button>
+          </div>
+          <p class="hint">今天约活动 <b id="activityMinutesHint">80</b> 分钟；活动功耗 = 静息功率 × MET。</p>
+        </article>
+      </section>
+
+      <section class="panel" id="panel-device" data-panel="device" role="tabpanel" aria-labelledby="tab-device" hidden>
+        <div class="list-heading" id="deviceHeading">
+          <h3>设备清单</h3>
+          <span>电池 / 功率 · 每日耗能</span>
+        </div>
+        <div class="device-list" id="deviceList"></div>
+        <button class="section-expand" id="deviceExpandButton" type="button" aria-expanded="false" aria-controls="deviceExtraList">
+          <span>展开更多设备</span>
+          <em id="deviceExpandMeta">6 项可选</em>
+          <svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg>
+        </button>
+        <div class="device-list extra-list" id="deviceExtraList" hidden></div>
+        <div class="tip-card">
+          <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+          <p>勾选才会计入总能耗。电池设备按容量、3.7V 与 85% 充电效率估算；笔记本按 Wh 电池能量，台式主机按功率 × 使用时长计算。</p>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-transit" data-panel="transit" role="tabpanel" aria-labelledby="tab-transit" hidden>
+        <div class="list-heading" id="fixedHeading">
+          <h3>周边固定项</h3>
+          <span id="fixedSubtotal">0.69 kWh/天</span>
+        </div>
+        <div class="fixed-card">
+          <div class="fixed-row">
+            <span class="fixed-icon"><svg class="icon"><use href="#i-wifi"></use></svg></span>
+            <div class="fixed-copy">
+              <h3>WiFi 路由器</h3>
+              <p>8 W · 24 小时开启</p>
+            </div>
+            <div class="fixed-energy"><strong id="wifiFixedKwh">0.19</strong><small>kWh/天</small></div>
+          </div>
+          <div class="fixed-row">
+            <span class="fixed-icon"><svg class="icon"><use href="#i-tower"></use></svg></span>
+            <div class="fixed-copy">
+              <h3>通信基站</h3>
+              <p>固定分摊 · 0.25 kWh/天</p>
+            </div>
+            <div class="fixed-energy"><strong id="baseFixedKwh">0.25</strong><small>kWh/天</small></div>
+          </div>
+          <div class="fixed-row">
+            <span class="fixed-icon"><svg class="icon"><use href="#i-cloud"></use></svg></span>
+            <div class="fixed-copy">
+              <h3>云服务器及传输</h3>
+              <p>固定分摊 · 0.25 kWh/天</p>
+            </div>
+            <div class="fixed-energy"><strong id="cloudFixedKwh">0.25</strong><small>kWh/天</small></div>
+          </div>
+        </div>
+
+        <div class="list-heading spaced" id="applianceHeading">
+          <h3>电器功耗</h3>
+          <span id="applianceSubtotal">0.00 kWh/天</span>
+        </div>
+        <div class="appliance-list" id="applianceList"></div>
+        <div class="tip-card">
+          <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+          <p>空调、热水器等按“功率 × 使用时长”估算。默认只勾选冰箱，其他电器右上角勾选后才计入；功率为典型值。</p>
+        </div>
+
+        <div class="list-heading spaced" id="travelHeading">
+          <h3>今日出行</h3>
+          <span id="travelSubtotal">0.00 kWh</span>
+        </div>
+        <div class="trip-group-label" id="dailyTripGroup"><span>日常出行</span><em>拖动滑条</em></div>
+        <div class="trip-list" id="transitList"></div>
+        <button class="section-expand" id="tripExpandButton" type="button" aria-expanded="false" aria-controls="tripExtra">
+          <span>展开更多出行</span>
+          <em id="tripExpandMeta">9 项可选</em>
+          <svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg>
+        </button>
+        <div id="tripExtra" hidden>
+          <div class="trip-group-label"><span>更多日常出行</span><em>拖动滑条</em></div>
+          <div class="trip-list" id="transitExtraList"></div>
+          <div class="trip-group-label" id="intercityGroup"><span>城际出行</span><em>输入公里数 · 人均公里能耗</em></div>
+          <div class="trip-input-list" id="transitInputList"></div>
+        </div>
+
+        <div class="insight-card" id="transitInsight">
+          <span class="insight-icon" aria-hidden="true">
+            <svg class="icon"><use href="#i-spark"></use></svg>
+          </span>
+          <p id="transitInsightText">拖动滑条，看看一次出行会消耗多少能量。</p>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-overview" data-panel="overview" role="tabpanel" aria-labelledby="tab-overview" hidden>
+        <article class="grade-card" id="gradeCard" data-level="1">
+          <span class="grade-stamp" aria-hidden="true">
+            <svg class="icon"><use href="#i-leaf"></use></svg>
+            <b id="gradeIndex">01</b>
+          </span>
+          <div class="grade-copy">
+            <span class="grade-kicker" id="gradeLabel">今日评价 · 省电模式</span>
+            <p class="grade-line" id="gradeText">点几块炭够你活一天，牛逼</p>
+            <span class="grade-metric" id="gradeMetric">按周边 3.84 kWh 评定</span>
+          </div>
+          <span class="grade-scale" id="gradeScale" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i>
+          </span>
+        </article>
+
+        <div class="list-heading">
+          <h3>三类明细</h3>
+          <span>点击进入分类调整</span>
+        </div>
+        <div class="overview-list">
+          <button class="overview-item overview-body" type="button" data-go-tab="body">
+            <span class="overview-icon"><svg class="icon"><use href="#i-body"></use></svg></span>
+            <span class="overview-copy"><strong>自体功耗</strong><small>身高体重 · 步数 · MET</small></span>
+            <span class="overview-value"><strong id="overviewBodyKwh">0.00</strong><small>kWh</small><em id="overviewBodyPct">0%</em></span>
+          </button>
+          <button class="overview-item overview-device" type="button" data-go-tab="device">
+            <span class="overview-icon"><svg class="icon"><use href="#i-phone"></use></svg></span>
+            <span class="overview-copy"><strong>设备功耗</strong><small>电池 · 充电次数 · 主机</small></span>
+            <span class="overview-value"><strong id="overviewDeviceKwh">0.00</strong><small>kWh</small><em id="overviewDevicePct">0%</em></span>
+          </button>
+          <button class="overview-item overview-transit" type="button" data-go-tab="transit">
+            <span class="overview-icon"><svg class="icon"><use href="#i-train"></use></svg></span>
+            <span class="overview-copy"><strong>周边功耗</strong><small>固定项 · 电器 · 出行</small></span>
+            <span class="overview-value"><strong id="overviewTransitKwh">0.00</strong><small>kWh</small><em id="overviewTransitPct">0%</em></span>
+          </button>
+        </div>
+        <div class="overview-callout" id="overviewInsight">
+          <span class="overview-callout-icon"><svg class="icon"><use href="#i-spark"></use></svg></span>
+          <p id="overviewInsightText">这里是今天三类能量的总账。</p>
+        </div>
+
+        <div class="list-heading spaced history-heading">
+          <h3>最近 7 天</h3>
+          <span>本机保留 2 年</span>
+        </div>
+        <article class="history-card" aria-label="最近七天总功耗历史">
+          <div class="history-bars" id="historyBars" aria-label="最近七天每日总功耗"></div>
+          <p class="history-caption" id="historyCaption">从今天开始记录。</p>
+        </article>
+
+        <div class="tip-card">
+          <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+          <p>总功耗 = 自体 + 设备 + 周边。前三页顶部只显示各自分类的加权结果，本页才汇总全部。</p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="tabbar" aria-label="能耗分页" role="tablist">
+      <button class="tab is-active" id="tab-body" type="button" data-tab="body" role="tab" aria-selected="true" aria-controls="panel-body">
+        <span class="tab-icon"><svg class="icon"><use href="#i-body"></use></svg></span>
+        <span class="tab-label">自体</span>
+      </button>
+      <button class="tab" id="tab-device" type="button" data-tab="device" role="tab" aria-selected="false" aria-controls="panel-device">
+        <span class="tab-icon"><svg class="icon"><use href="#i-phone"></use></svg></span>
+        <span class="tab-label">设备</span>
+      </button>
+      <button class="tab" id="tab-transit" type="button" data-tab="transit" role="tab" aria-selected="false" aria-controls="panel-transit">
+        <span class="tab-icon"><svg class="icon"><use href="#i-train"></use></svg></span>
+        <span class="tab-label">周边</span>
+      </button>
+      <button class="tab" id="tab-overview" type="button" data-tab="overview" role="tab" aria-selected="false" aria-controls="panel-overview">
+        <span class="tab-icon"><svg class="icon"><use href="#i-overview"></use></svg></span>
+        <span class="tab-label">总览</span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="modal profile-modal" id="profileModal" hidden>
+    <div class="modal-backdrop" data-close-profile></div>
+    <section class="sheet profile-sheet" id="profileSheet" role="dialog" aria-modal="true" aria-labelledby="profileTitle" tabindex="-1">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <div>
+          <span class="kicker" id="profileKicker">BEFORE WE START</span>
+          <h2 id="profileTitle">先认识一下你</h2>
+        </div>
+        <button class="round-button" id="closeProfileButton" type="button" aria-label="关闭身体资料">
+          <svg class="icon"><use href="#i-close"></use></svg>
+        </button>
+      </div>
+      <div class="sheet-scroll">
+        <p class="sheet-lead" id="profileLead">身高、体重和年龄只录入一次，之后在「身体资料」里修改。基础代谢会按你的实际年龄计算。</p>
+        <div class="profile-form">
+          <label class="profile-field">
+            <span class="profile-field-label"><b>年龄</b><small>实际年龄，用于基础代谢</small></span>
+            <span class="profile-input"><input id="profileAge" type="number" inputmode="numeric" min="16" max="80" step="1" value="30" aria-label="年龄"><em>岁</em></span>
+          </label>
+          <label class="profile-field">
+            <span class="profile-field-label"><b>身高</b><small>140–210 cm</small></span>
+            <span class="profile-input"><input id="profileHeight" type="number" inputmode="numeric" min="140" max="210" step="1" value="170" aria-label="身高"><em>cm</em></span>
+          </label>
+          <label class="profile-field">
+            <span class="profile-field-label"><b>体重</b><small>40–120 kg</small></span>
+            <span class="profile-input"><input id="profileWeight" type="number" inputmode="numeric" min="40" max="120" step="1" value="68" aria-label="体重"><em>kg</em></span>
+          </label>
+        </div>
+        <div class="profile-settings-extra" id="profileSettingsExtra" hidden>
+          <div class="settings-section-title"><span>数据保护</span><em>只锁配置，不锁每日用量</em></div>
+          <div class="config-lock-row">
+            <div class="config-lock-copy">
+              <b>锁定设备和电器电池容量、功率</b>
+              <small>开启后容量 / 功率不可调；每天的充电次数、使用时长和出行仍可录入</small>
+            </div>
+            <button class="switch" id="configLockToggle" type="button" role="switch" aria-checked="false" aria-label="锁定设备和电器电池容量、功率">
+              <span aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+        <div class="note-block">
+          <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+          <p>资料只保存在本机，不联网；第一次保存后，下次打开不会再问。</p>
+        </div>
+      </div>
+      <div class="sheet-footer">
+        <button class="btn btn-primary" id="saveProfileButton" type="button">保存并开始</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" id="infoModal" hidden>
+    <div class="modal-backdrop" data-close-modal></div>
+    <section class="sheet" id="infoSheet" role="dialog" aria-modal="true" aria-labelledby="infoTitle" tabindex="-1">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <div>
+          <span class="kicker">ABOUT THE NUMBERS</span>
+          <h2 id="infoTitle">这些数字怎么来的？</h2>
+        </div>
+        <button class="round-button" id="closeInfo" type="button" data-close-modal aria-label="关闭说明">
+          <svg class="icon"><use href="#i-close"></use></svg>
+        </button>
+      </div>
+      <div class="sheet-scroll">
+        <p class="sheet-lead">这个应用把一天里的三层能量放进同一个账本：身体代谢、设备充电与主机用电，以及 WiFi、基站、云服务器、家用电器和出行等周边开销。第一次打开会先录入年龄、身高和体重，之后在「身体资料」里修改；设备、电器和出行子项勾选后才计入。顶部背景仍会在浅色纸面里轻微变化。</p>
+
+        <div class="formula-grid">
+          <div class="formula-card">
+            <span class="formula-index">01</span>
+            <h3>自体</h3>
+            <p>基础代谢依据实际年龄、身高和体重估算，性别取男女平均常数。步数按 100 步/分钟折算活动时长，活动时功率 = 静息功率 × MET，强度可按 0.05 MET 微调。</p>
+          </div>
+          <div class="formula-card">
+            <span class="formula-index">02</span>
+            <h3>设备</h3>
+            <p>电池设备按容量 × 电压 × 满充次数 ÷ 85% 效率；笔记本按 Wh 电池能量；台式主机按功率 × 使用时长。</p>
+          </div>
+          <div class="formula-card">
+            <span class="formula-index">03</span>
+            <h3>周边</h3>
+            <p>WiFi 按 8W × 24h 固定计入；通信基站、云服务器及传输各固定 0.25 kWh/天。电器按功率 × 时长；大巴、火车、高铁、飞机按人均公里能耗，直接输入公里数。</p>
+          </div>
+        </div>
+
+        <h3 class="section-title">估算口径</h3>
+        <dl class="assumptions">
+          <div><dt>基础代谢</dt><dd>10×体重 + 6.25×身高 − 5×年龄 − 78 kcal/天；性别取男女平均常数</dd></div>
+          <div><dt>身体资料</dt><dd>首次录入年龄、身高、体重；之后从顶部齿轮或「修改」进入设置</dd></div>
+          <div><dt>计入规则</dt><dd>设备、电器、出行子项勾选后才计入；右上角圆圈按「勾选 → 固定 → 取消勾选」循环</dd></div>
+          <div><dt>固定调节</dt><dd>每个子卡片右上角点第二次即固定该卡片，卡片内滑条和输入框会冻结；再点一次取消勾选，不会误触其他项</dd></div>
+          <div><dt>步数</dt><dd>100 步/分钟；步长 ≈ 0.413 × 身高</dd></div>
+          <div><dt>活动强度</dt><dd>1–12 MET，0.05 MET 微调，快走约 4.2 MET</dd></div>
+          <div><dt>设备电池</dt><dd>手机 800–10,000 mAh；平板 3,000–15,000 mAh；耳机 100–1,800 mAh；移动电源 5,000–27,000 mAh</dd></div>
+          <div><dt>笔记本</dt><dd>电池能量 40–120 Wh；按完整充电次数计入</dd></div>
+          <div><dt>台式主机</dt><dd>150–1,000 W；按功率 × 使用时长</dd></div>
+          <div><dt>充电效率</dt><dd>按 85% 计算，不含充电器空载功耗</dd></div>
+          <div><dt>电器</dt><dd>空调、电热水器、冰箱、洗衣机、电视；按功率 × 时长</dd></div>
+          <div><dt>WiFi</dt><dd>8 W × 24 h = 0.192 kWh/天</dd></div>
+          <div><dt>通信基站</dt><dd>固定 0.25 kWh/天（按日分摊）</dd></div>
+          <div><dt>云服务器</dt><dd>含传输；固定 0.25 kWh/天</dd></div>
+          <div><dt>地铁</dt><dd>35 km/h；0.060 kWh / 人·公里</dd></div>
+          <div><dt>电动车</dt><dd>两轮电动自行车，20 km/h；0.018 kWh/km</dd></div>
+          <div><dt>打车 · 电车</dt><dd>纯电出租车，0.15 kWh/km</dd></div>
+          <div><dt>打车 · 油车</dt><dd>燃油出租车，0.55 kWh/km，约 6 L / 100 km</dd></div>
+          <div><dt>电车 / 油车</dt><dd>0.15 / 0.60 kWh/km；公交车人均 0.035 kWh/km</dd></div>
+          <div><dt>城际出行</dt><dd>大巴 0.050、火车 0.045、高铁 0.065、飞机 0.300 kWh/人·公里；公里数手输</dd></div>
+          <div><dt>评价等级</dt><dd>按周边功耗（固定项 + 电器 + 出行）：≤5 省电模式；≤15 节能模式；≤25 均衡模式；≤40 性能模式；更高为高耗能模式</dd></div>
+          <div><dt>历史记录</dt><dd>按自然日保存在本机，保留最近 2 年（730 天）</dd></div>
+          <div><dt>每日归零</dt><dd>每天首次打开会把昨日用量归档，再把今日步数、充电次数、电器时长和出行清零；身体资料、已勾选项目和固定项保留。基础代谢与 WiFi/基站/云固定项仍计入全天。</dd></div>
+          <div><dt>标准煤</dt><dd>1 kWh ≈ 0.1228 千克标准煤</dd></div>
+          <div><dt>特斯拉 Model X</dt><dd>按约 20.8 kWh/100km 估算，1 kWh 约可跑 4.8 km</dd></div>
+          <div><dt>背景色</dt><dd>按当前页 kWh 在浅绿→浅蓝→杏色→浅珊瑚之间过渡</dd></div>
+        </dl>
+
+        <div class="note-block">
+          <svg class="icon" aria-hidden="true"><use href="#i-info"></use></svg>
+          <p>自体能耗来自食物代谢，设备和周边来自电力或燃料。把三者都换算成 kWh，只是为了比较能量数量级，并不代表它们可以互相替代或真的燃烧了标准煤。基站采用固定日分摊值，不是手机直连基站的实时功率。</p>
+        </div>
+        <div class="note-block quiet">
+          <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+          <p>所有计算都在本机完成。应用不联网、不需要权限，也不会收集你的数据。</p>
+        </div>
+      </div>
+
+      <div class="sheet-footer">
+        <div class="sheet-actions">
+          <button class="btn btn-ghost" id="resetButton" type="button">
+            <svg class="icon"><use href="#i-reset"></use></svg>
+            恢复示例值
+          </button>
+          <button class="btn btn-primary" type="button" data-close-modal>完成</button>
+        </div>
+        <p class="version">功耗计算器 · v2.1.2 · 离线版</p>
+      </div>
+    </section>
+  </div>
+
+  <svg class="svg-sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-bolt" viewBox="0 0 24 24">
+        <path d="M13.2 2.2 4.4 13.4h5.9l.4 8.4 8.9-11.4h-6.1l-.3-8.2Z" fill="currentColor" stroke="none"></path>
+      </symbol>
+      <symbol id="i-body" viewBox="0 0 24 24">
+        <circle cx="12" cy="4.8" r="2.4"></circle>
+        <path d="M12 7.7v6.1m0 0-3.1 7.1m3.1-7.1 3.1 7.1M6.7 10.4 12 12l5.3-1.6"></path>
+      </symbol>
+      <symbol id="i-overview" viewBox="0 0 24 24">
+        <rect x="3.5" y="4" width="7" height="7" rx="1.5"></rect>
+        <rect x="13.5" y="4" width="7" height="7" rx="1.5"></rect>
+        <rect x="3.5" y="14" width="7" height="6" rx="1.5"></rect>
+        <rect x="13.5" y="14" width="7" height="6" rx="1.5"></rect>
+      </symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24">
+        <rect x="7" y="2.5" width="10" height="19" rx="2.6"></rect>
+        <path d="M10.5 18.5h3"></path>
+      </symbol>
+      <symbol id="i-earbuds" viewBox="0 0 24 24">
+        <path d="M8.4 3.8a2.7 2.7 0 0 1 2.7 2.7v5.2a2.7 2.7 0 0 1-5.4 0V6.5a2.7 2.7 0 0 1 2.7-2.7Z"></path>
+        <path d="M15.6 8.4a2.7 2.7 0 0 1 2.7 2.7v5.2a2.7 2.7 0 0 1-5.4 0v-5.2a2.7 2.7 0 0 1 2.7-2.7Z"></path>
+        <path d="M8.4 11.7v2.1M15.6 15.9v2.1"></path>
+      </symbol>
+      <symbol id="i-actioncam" viewBox="0 0 24 24">
+        <rect x="3" y="6" width="18" height="12" rx="3"></rect>
+        <circle cx="12" cy="12" r="3.4"></circle>
+        <path d="M7 6V4h4v2M18 9.2h.01"></path>
+      </symbol>
+      <symbol id="i-camera" viewBox="0 0 24 24">
+        <rect x="3" y="7" width="18" height="13" rx="2.5"></rect>
+        <path d="m8 7 1.4-2.5h5.2L16 7"></path>
+        <circle cx="12" cy="13.5" r="4"></circle>
+      </symbol>
+      <symbol id="i-instant" viewBox="0 0 24 24">
+        <rect x="4" y="3.5" width="16" height="17.5" rx="2.6"></rect>
+        <rect x="7" y="6.8" width="10" height="4.3" rx="1.2"></rect>
+        <circle cx="12" cy="15.6" r="2.2"></circle>
+        <path d="M7.5 19.6h9"></path>
+      </symbol>
+      <symbol id="i-tower" viewBox="0 0 24 24">
+        <path d="M12 21 8.5 5 12 2l3.5 3L12 21Z"></path>
+        <path d="M8.5 5h7M9.5 11h5M7 21h10M9 16h6M4.5 7.5A9 9 0 0 1 3.5 3M19.5 7.5A9 9 0 0 0 20.5 3"></path>
+      </symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24">
+        <path d="M7.2 18.5h9.5a3.8 3.8 0 0 0 .5-7.6 5.7 5.7 0 0 0-10.9-1.5 4.6 4.6 0 0 0 .9 9.1Z"></path>
+        <path d="M9.5 14.4h5M12 12.3v4.2M10.1 14.9 12 16.8l1.9-1.9"></path>
+      </symbol>
+      <symbol id="i-tablet" viewBox="0 0 24 24">
+        <rect x="4" y="2.5" width="16" height="19" rx="2.4"></rect>
+        <path d="M10.5 18.5h3"></path>
+      </symbol>
+      <symbol id="i-powerbank" viewBox="0 0 24 24">
+        <rect x="7" y="2.5" width="10" height="19" rx="2.5"></rect>
+        <path d="M10 6h4M9.5 17.5h5M10.4 12.8l1.8-3.6v2.8h1.7l-2 3.6v-2.8Z"></path>
+      </symbol>
+      <symbol id="i-headphones" viewBox="0 0 24 24">
+        <path d="M4.5 13a7.5 7.5 0 0 1 15 0"></path>
+        <rect x="3.5" y="12.5" width="4" height="7.5" rx="2"></rect>
+        <rect x="16.5" y="12.5" width="4" height="7.5" rx="2"></rect>
+      </symbol>
+      <symbol id="i-desktop" viewBox="0 0 24 24">
+        <rect x="4" y="3" width="9" height="18" rx="2"></rect>
+        <path d="M7 7h.01M7 11h.01M7 15h.01M8.5 18h2M16 6h4.5v10H16M16 11h4.5M15 21h8"></path>
+      </symbol>
+      <symbol id="i-bus" viewBox="0 0 24 24">
+        <rect x="4" y="3.5" width="16" height="14.5" rx="3"></rect>
+        <path d="M4 10h16M9 21l1-3M15 21l-1-3M7.5 14.5h.01M16.5 14.5h.01"></path>
+        <circle cx="7.5" cy="14.5" r="1" fill="currentColor" stroke="none"></circle>
+        <circle cx="16.5" cy="14.5" r="1" fill="currentColor" stroke="none"></circle>
+      </symbol>
+      <symbol id="i-plane" viewBox="0 0 24 24">
+        <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16Z" fill="currentColor" stroke="none"></path>
+      </symbol>
+      <symbol id="i-evcar" viewBox="0 0 24 24">
+        <path d="M4 16.2v-4.4l1.8-4.3A2 2 0 0 1 7.6 6.3h8.8a2 2 0 0 1 1.8 1.2l1.8 4.3v4.4"></path>
+        <path d="M3.5 12.3h17M5 16.2h14M7 19.5v-2.2m10 2.2v-2.2"></path>
+        <path d="m12.7 7.7-2 3.4h2.6l-1.2 3"></path>
+      </symbol>
+      <symbol id="i-fuelcar" viewBox="0 0 24 24">
+        <path d="M4 16.2v-4.4l1.8-4.3A2 2 0 0 1 7.6 6.3h8.8a2 2 0 0 1 1.8 1.2l1.8 4.3v4.4"></path>
+        <path d="M3.5 12.3h17M5 16.2h14M7 19.5v-2.2m10 2.2v-2.2"></path>
+        <path d="M12 7.2c1.2 1.4 1.8 2.4 1.8 3.2a1.8 1.8 0 0 1-3.6 0c0-.8.6-1.8 1.8-3.2Z"></path>
+      </symbol>
+      <symbol id="i-heater" viewBox="0 0 24 24">
+        <rect x="6" y="2.5" width="12" height="19" rx="3"></rect>
+        <path d="M9 7h6M9 10h6M9 13h6M9 16h6M4 8h2M4 16h2"></path>
+      </symbol>
+      <symbol id="i-fridge" viewBox="0 0 24 24">
+        <rect x="5" y="2.5" width="14" height="19" rx="2.5"></rect>
+        <path d="M5 10h14M9 6.5v1.8M9 13v2.5"></path>
+      </symbol>
+      <symbol id="i-washer" viewBox="0 0 24 24">
+        <rect x="4" y="2.5" width="16" height="19" rx="3"></rect>
+        <circle cx="12" cy="14" r="4.2"></circle>
+        <path d="M8 6.5h.01M11 6.5h.01M14 6.5h.01"></path>
+      </symbol>
+      <symbol id="i-wifi" viewBox="0 0 24 24">
+        <path d="M3.5 9.2a13 13 0 0 1 17 0M6.4 12.4a8.6 8.6 0 0 1 11.2 0M9.3 15.5a4.2 4.2 0 0 1 5.4 0"></path>
+        <circle cx="12" cy="18.8" r="1.1" fill="currentColor" stroke="none"></circle>
+      </symbol>
+      <symbol id="i-laptop" viewBox="0 0 24 24">
+        <rect x="4" y="4.5" width="16" height="11" rx="2"></rect>
+        <path d="M2.5 18.5h19l-1.4-3H3.9l-1.4 3Z"></path>
+      </symbol>
+      <symbol id="i-tv" viewBox="0 0 24 24">
+        <rect x="3" y="4.5" width="18" height="12" rx="2"></rect>
+        <path d="M9 20.5h6M12 16.5v4"></path>
+      </symbol>
+      <symbol id="i-snow" viewBox="0 0 24 24">
+        <path d="M12 2.5v19M4.2 7.2l15.6 9.6M19.8 7.2 4.2 16.8M12 6l2.7-2.2M12 6 9.3 3.8M12 18l2.7 2.2M12 18l-2.7 2.2M5.7 10.2 3.2 9.4M5.7 13.8l-2.5.8M18.3 10.2l2.5-.8M18.3 13.8l2.5.8"></path>
+      </symbol>
+      <symbol id="i-train" viewBox="0 0 24 24">
+        <rect x="5" y="3" width="14" height="15" rx="3"></rect>
+        <path d="M5 11.5h14M9 21l2-3M15 21l-2-3M8.5 7h7M8.5 14.5h.01M15.5 14.5h.01"></path>
+        <circle cx="8.5" cy="14.5" r=".8" fill="currentColor" stroke="none"></circle>
+        <circle cx="15.5" cy="14.5" r=".8" fill="currentColor" stroke="none"></circle>
+      </symbol>
+      <symbol id="i-bike" viewBox="0 0 24 24">
+        <circle cx="5.8" cy="17" r="3.2"></circle>
+        <circle cx="18.2" cy="17" r="3.2"></circle>
+        <path d="m5.8 17 4.1-7.4h4.3l4 7.4M10 9.6H7.2M13.8 9.6l4.4 7.4M9 6.2h4"></path>
+      </symbol>
+      <symbol id="i-car" viewBox="0 0 24 24">
+        <path d="M4 16.2v-4.4l1.8-4.3A2 2 0 0 1 7.6 6.3h8.8a2 2 0 0 1 1.8 1.2l1.8 4.3v4.4"></path>
+        <path d="M3.5 12.3h17M5 16.2h14M7 19.5v-2.2m10 2.2v-2.2"></path>
+        <circle cx="7.5" cy="14.2" r="1" fill="currentColor" stroke="none"></circle>
+        <circle cx="16.5" cy="14.2" r="1" fill="currentColor" stroke="none"></circle>
+      </symbol>
+      <symbol id="i-info" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M12 10.6V17M12 7.2h.01"></path>
+      </symbol>
+      <symbol id="i-close" viewBox="0 0 24 24">
+        <path d="m6.5 6.5 11 11m0-11-11 11"></path>
+      </symbol>
+      <symbol id="i-reset" viewBox="0 0 24 24">
+        <path d="M4.7 9.6A8.1 8.1 0 1 1 5 15.4M4.7 4.6v5h5"></path>
+      </symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24">
+        <path d="m12 2.4 1.7 6.2 6.2 1.7-6.2 1.7L12 18.2l-1.7-6.2L4.1 10.3l6.2-1.7L12 2.4Z" fill="currentColor" stroke="none"></path>
+        <path d="m18.5 16 .7 2.4 2.4.7-2.4.7-.7 2.4-.7-2.4-2.4-.7 2.4-.7.7-2.4Z" fill="currentColor" stroke="none"></path>
+      </symbol>
+      <symbol id="i-leaf" viewBox="0 0 24 24">
+        <path d="M20.2 3.8c-8.9-.2-14.8 3.7-14.8 10.4a5.2 5.2 0 0 0 5.2 5.2c6.8 0 9.8-5.7 9.6-15.6Z"></path>
+        <path d="M4.2 20.2c2.6-4.5 6.1-7.7 11.2-10.2"></path>
+      </symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24">
+        <rect x="4.5" y="10" width="15" height="10.5" rx="2.4"></rect>
+        <path d="M8 10V7.7a4 4 0 0 1 8 0V10M12 14v3"></path>
+      </symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="6.3"></circle>
+        <circle cx="12" cy="12" r="2.7"></circle>
+        <rect x="10.8" y="2.2" width="2.4" height="3.8" rx="0.6"></rect>
+        <rect x="10.8" y="18" width="2.4" height="3.8" rx="0.6"></rect>
+        <rect x="2.2" y="10.8" width="3.8" height="2.4" rx="0.6"></rect>
+        <rect x="18" y="10.8" width="3.8" height="2.4" rx="0.6"></rect>
+        <rect x="10.8" y="2.2" width="2.4" height="3.8" rx="0.6" transform="rotate(45 12 12)"></rect>
+        <rect x="10.8" y="2.2" width="2.4" height="3.8" rx="0.6" transform="rotate(135 12 12)"></rect>
+        <rect x="10.8" y="2.2" width="2.4" height="3.8" rx="0.6" transform="rotate(225 12 12)"></rect>
+        <rect x="10.8" y="2.2" width="2.4" height="3.8" rx="0.6" transform="rotate(315 12 12)"></rect>
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 24 24">
+        <path d="m5 12.5 4.2 4.2L19 7"></path>
+      </symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24">
+        <path d="m7 10 5 5 5-5"></path>
+      </symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24">
+        <path d="M5 12h14"></path>
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14"></path>
+      </symbol>
+    </defs>
+  </svg>
+
+  <script>
+/* 功耗计算器 — shared calculation model (no DOM dependencies) */
+(function (global) {
+  'use strict';
+
+  var MODEL = {
+    body: {
+      kcalPerKwh: 860.421,
+      // 1 kcal/day = 4184 J / 86400 s ≈ 0.0484259 W
+      kcalPerDayToWatt: 4184 / 86400,
+      // Mifflin-St Jeor 男女平均，按实际年龄：
+      // 10W + 6.25H - 5A - 78 kcal/day（男女常数 +5 / -161 的平均）
+      bmrSexAverageConstant: -78,
+      bmrAgeCoefficient: 5,
+      strideHeightFactor: 0.00413,
+      stepsPerMinute: 100
+    },
+    battery: {
+      voltage: 3.7,
+      efficiency: 0.85,
+      cyclesMax: 3,
+      cyclesStep: 0.25
+    },
+    equivalence: {
+      kgcePerKwh: 0.12284,
+      // Tesla Model X 按约 20.8 kWh/100km 折算
+      teslaModelXKmPerKwh: 4.8
+    },
+    gradeLevels: [
+      { max: 5, label: '省电模式', text: '点几块炭够你活一天，牛逼' },
+      { max: 15, label: '节能模式', text: '控制全球变暖有你一份功劳' },
+      { max: 25, label: '均衡模式', text: '试着把空调固定在26度，指不定会少花几块钱' },
+      { max: 40, label: '性能模式', text: '耗能有点高，是不是需要注意下账单...' },
+      { max: Infinity, label: '高耗能模式', text: '你知道你带得动几张GPU吗...不告诉你！' }
+    ],
+    fixed: {
+      wifi: { name: 'WiFi 路由器', icon: 'wifi', watts: 8, hours: 24 },
+      baseStation: { name: '通信基站', icon: 'tower', kwhPerDay: 0.25 },
+      cloud: { name: '云服务器及传输', icon: 'cloud', kwhPerDay: 0.25 }
+    },
+    devices: {
+      phone: {
+        name: '手机', icon: 'phone', mode: 'battery', unit: 'mAh',
+        capacityMin: 800, capacityMax: 10000, capacityStep: 100,
+        defaultCapacity: 5000, defaultCycles: 1,
+        meta: '日常主力设备'
+      },
+      tablet: {
+        name: '平板电脑', icon: 'tablet', mode: 'battery', unit: 'mAh',
+        capacityMin: 3000, capacityMax: 15000, capacityStep: 500,
+        defaultCapacity: 8000, defaultCycles: 0.75,
+        meta: '大屏娱乐与轻办公'
+      },
+      laptop: {
+        name: '笔记本电脑', icon: 'laptop', mode: 'battery', unit: 'Wh',
+        capacityMin: 40, capacityMax: 120, capacityStep: 5,
+        defaultCapacity: 60, defaultCycles: 1,
+        meta: '电池能量 40–120 Wh'
+      },
+      powerbank: {
+        name: '移动电源', icon: 'powerbank', mode: 'battery', unit: 'mAh',
+        capacityMin: 5000, capacityMax: 27000, capacityStep: 500,
+        defaultCapacity: 10000, defaultCycles: 0.5,
+        meta: '给手机 / 耳机补电'
+      },
+      earbuds: {
+        name: '真无线耳机', icon: 'earbuds', mode: 'battery', unit: 'mAh',
+        capacityMin: 200, capacityMax: 1000, capacityStep: 50,
+        defaultCapacity: 500, defaultCycles: 1,
+        meta: '耳机 + 充电盒'
+      },
+      headphones: {
+        name: '头戴式耳机', icon: 'headphones', mode: 'battery', unit: 'mAh',
+        capacityMin: 100, capacityMax: 1800, capacityStep: 50,
+        defaultCapacity: 800, defaultCycles: 0.75,
+        meta: '包耳式无线耳机'
+      },
+      actioncam: {
+        name: '运动相机', icon: 'actioncam', mode: 'battery', unit: 'mAh',
+        capacityMin: 800, capacityMax: 5000, capacityStep: 100,
+        defaultCapacity: 1800, defaultCycles: 0.5,
+        meta: '户外拍摄'
+      },
+      camera: {
+        name: '相机', icon: 'camera', mode: 'battery', unit: 'mAh',
+        capacityMin: 800, capacityMax: 5000, capacityStep: 100,
+        defaultCapacity: 2400, defaultCycles: 0.25,
+        meta: '卡片机 / 可换镜头机'
+      },
+      instax: {
+        name: '拍立得', icon: 'instant', mode: 'battery', unit: 'mAh',
+        capacityMin: 800, capacityMax: 3000, capacityStep: 100,
+        defaultCapacity: 1200, defaultCycles: 0.25,
+        meta: '即时成像相机'
+      },
+      desktop: {
+        name: '台式主机', icon: 'desktop', mode: 'power',
+        powerMin: 150, powerMax: 1000, powerStep: 10,
+        defaultPower: 300,
+        hoursMin: 0, hoursMax: 24, hoursStep: 0.5,
+        defaultHours: 2,
+        meta: '按主机功率与使用时长'
+      }
+    },
+    appliances: {
+      fridge: {
+        name: '冰箱', icon: 'fridge', powerMin: 50, powerMax: 300, powerStep: 10,
+        defaultPower: 80, defaultHours: 24,
+        meta: '全天运行'
+      },
+      ac: {
+        name: '空调', icon: 'snow', powerMin: 700, powerMax: 3500, powerStep: 100,
+        defaultPower: 1200, defaultHours: 0,
+        meta: '制冷 / 制热平均功率'
+      },
+      heater: {
+        name: '电热水器', icon: 'heater', powerMin: 1000, powerMax: 3000, powerStep: 100,
+        defaultPower: 2000, defaultHours: 0,
+        meta: '储水式热水器'
+      },
+      washer: {
+        name: '洗衣机', icon: 'washer', powerMin: 200, powerMax: 1200, powerStep: 50,
+        defaultPower: 500, defaultHours: 0,
+        meta: '按一次标准洗涤'
+      },
+      tv: {
+        name: '电视', icon: 'tv', powerMin: 50, powerMax: 400, powerStep: 10,
+        defaultPower: 120, defaultHours: 0,
+        meta: '按屏幕平均功率'
+      }
+    },
+    transit: {
+      subway: {
+        name: '地铁', icon: 'train', form: 'slider', unit: 'min', unitLabel: '分钟',
+        min: 0, max: 120, step: 5, defaultValue: 30,
+        speedKmh: 35, kwhPerKm: 0.060, perPerson: true,
+        meta: '人均 · 按 35 km/h 估算'
+      },
+      ebike: {
+        name: '电动车', icon: 'bike', form: 'slider', unit: 'min', unitLabel: '分钟',
+        min: 0, max: 120, step: 5, defaultValue: 30,
+        speedKmh: 20, kwhPerKm: 0.018, perPerson: false,
+        meta: '两轮电动自行车 · 20 km/h'
+      },
+      taxiEv: {
+        name: '打车 · 电车', icon: 'evcar', form: 'slider', unit: 'km', unitLabel: '公里',
+        min: 0, max: 80, step: 1, defaultValue: 0,
+        kwhPerKm: 0.150, perPerson: false,
+        meta: '纯电出租车 · 0.15 kWh/km'
+      },
+      taxi: {
+        name: '打车 · 油车', icon: 'fuelcar', form: 'slider', unit: 'km', unitLabel: '公里',
+        min: 0, max: 80, step: 1, defaultValue: 0,
+        kwhPerKm: 0.55, perPerson: false,
+        meta: '燃油出租车 · 0.55 kWh/km'
+      },
+      cityBus: {
+        name: '公交车', icon: 'bus', form: 'slider', unit: 'km', unitLabel: '公里',
+        min: 0, max: 200, step: 5, defaultValue: 0,
+        kwhPerKm: 0.035, perPerson: true,
+        meta: '人均 · 0.035 kWh/km'
+      },
+      evCar: {
+        name: '电车', icon: 'evcar', form: 'slider', unit: 'km', unitLabel: '公里',
+        min: 0, max: 500, step: 5, defaultValue: 0,
+        kwhPerKm: 0.150, perPerson: false,
+        meta: '纯电私家车 · 0.15 kWh/km'
+      },
+      iceCar: {
+        name: '油车', icon: 'fuelcar', form: 'slider', unit: 'km', unitLabel: '公里',
+        min: 0, max: 500, step: 5, defaultValue: 0,
+        kwhPerKm: 0.600, perPerson: false,
+        meta: '燃油私家车 · 0.60 kWh/km'
+      },
+      coach: {
+        name: '大巴', icon: 'bus', form: 'input', unit: 'km', unitLabel: '公里',
+        min: 0, max: 2000, step: 10, defaultValue: 0,
+        kwhPerKm: 0.050, perPerson: true,
+        meta: '人均 · 0.050 kWh/km'
+      },
+      train: {
+        name: '火车', icon: 'train', form: 'input', unit: 'km', unitLabel: '公里',
+        min: 0, max: 5000, step: 10, defaultValue: 0,
+        kwhPerKm: 0.045, perPerson: true,
+        meta: '人均 · 0.045 kWh/km'
+      },
+      hsr: {
+        name: '高铁', icon: 'train', form: 'input', unit: 'km', unitLabel: '公里',
+        min: 0, max: 5000, step: 10, defaultValue: 0,
+        kwhPerKm: 0.065, perPerson: true,
+        meta: '人均 · 0.065 kWh/km'
+      },
+      plane: {
+        name: '飞机', icon: 'plane', form: 'input', unit: 'km', unitLabel: '公里',
+        min: 0, max: 10000, step: 10, defaultValue: 0,
+        kwhPerKm: 0.300, perPerson: true,
+        meta: '人均 · 0.300 kWh/km'
+      }
+    }
+  };
+
+  // These are the items shown on the first screen. Everything else lives
+  // behind an expander and starts unchecked, so a new install only includes
+  // the core devices/routes until the user opts in.
+  var DEFAULT_ON_DEVICES = ['phone', 'earbuds', 'tablet', 'desktop'];
+  var DEFAULT_ON_APPLIANCES = ['fridge'];
+  var DEFAULT_ON_TRIPS = ['subway', 'ebike'];
+
+  var DEFAULTS = {
+    day: '',
+    configLocked: false,
+    age: 30,
+    height: 170,
+    weight: 68,
+    steps: 8000,
+    met: 4.2,
+    devices: {},
+    appliances: {},
+    trips: {},
+    tripEnabled: {},
+    tab: 'body'
+  };
+
+  Object.keys(MODEL.devices).forEach(function (key) {
+    var def = MODEL.devices[key];
+    DEFAULTS.devices[key] = def.mode === 'power'
+      ? { watts: def.defaultPower, hours: def.defaultHours, enabled: DEFAULT_ON_DEVICES.indexOf(key) >= 0 }
+      : { capacity: def.defaultCapacity, cycles: def.defaultCycles, enabled: DEFAULT_ON_DEVICES.indexOf(key) >= 0 };
+  });
+
+  Object.keys(MODEL.appliances).forEach(function (key) {
+    var def = MODEL.appliances[key];
+    DEFAULTS.appliances[key] = {
+      watts: def.defaultPower,
+      hours: def.defaultHours,
+      enabled: DEFAULT_ON_APPLIANCES.indexOf(key) >= 0
+    };
+  });
+
+  Object.keys(MODEL.transit).forEach(function (key) {
+    DEFAULTS.trips[key] = MODEL.transit[key].defaultValue;
+    DEFAULTS.tripEnabled[key] = DEFAULT_ON_TRIPS.indexOf(key) >= 0;
+  });
+
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function numberOr(value, fallback) {
+    var n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function roundTo(value, step) {
+    return Math.round(value / step) * step;
+  }
+
+  function normalizeState(raw) {
+    var source = raw && typeof raw === 'object' ? raw : {};
+    var defaults = DEFAULTS;
+    var state = {
+      day: /^\d{4}-\d{2}-\d{2}$/.test(String(source.day || '')) ? String(source.day) : defaults.day,
+      configLocked: source.configLocked === true,
+      age: Math.round(clamp(numberOr(source.age, defaults.age), 16, 80)),
+      height: Math.round(clamp(numberOr(source.height, defaults.height), 140, 210)),
+      weight: Math.round(clamp(numberOr(source.weight, defaults.weight), 40, 120)),
+      steps: roundTo(clamp(numberOr(source.steps, defaults.steps), 0, 30000), 50),
+      met: clamp(numberOr(source.met, defaults.met), 1, 12),
+      devices: {},
+      appliances: {},
+      trips: {},
+      tripEnabled: {},
+      tab: ['body', 'device', 'transit', 'overview'].indexOf(source.tab) >= 0 ? source.tab : defaults.tab
+    };
+
+    Object.keys(MODEL.devices).forEach(function (key) {
+      var def = MODEL.devices[key];
+      var fallback = defaults.devices[key];
+      var rawItem = source.devices && source.devices[key] && typeof source.devices[key] === 'object'
+        ? source.devices[key]
+        : null;
+      var item = rawItem || {};
+      var enabled = fallback.enabled;
+      if (rawItem) {
+        if (typeof rawItem.enabled === 'boolean') {
+          enabled = rawItem.enabled;
+        } else if (def.mode === 'power') {
+          // Migrate pre-toggle saved states: an item that used to contribute
+          // at >0 h stays checked; a deliberately 0 h item stays unchecked.
+          enabled = numberOr(rawItem.hours, fallback.hours) > 0;
+        } else {
+          enabled = numberOr(rawItem.cycles, fallback.cycles) > 0;
+        }
+      }
+
+      if (def.mode === 'power') {
+        state.devices[key] = {
+          watts: roundTo(
+            clamp(numberOr(item.watts, fallback.watts), def.powerMin, def.powerMax),
+            def.powerStep
+          ),
+          hours: roundTo(
+            clamp(numberOr(item.hours, fallback.hours), def.hoursMin, def.hoursMax),
+            def.hoursStep
+          ),
+          enabled: enabled
+        };
+      } else {
+        state.devices[key] = {
+          capacity: roundTo(
+            clamp(numberOr(item.capacity, fallback.capacity), def.capacityMin, def.capacityMax),
+            def.capacityStep
+          ),
+          cycles: roundTo(
+            clamp(numberOr(item.cycles, fallback.cycles), 0, MODEL.battery.cyclesMax),
+            MODEL.battery.cyclesStep
+          ),
+          enabled: enabled
+        };
+      }
+    });
+
+    Object.keys(MODEL.appliances).forEach(function (key) {
+      var def = MODEL.appliances[key];
+      var fallback = defaults.appliances[key];
+      var rawItem = source.appliances && source.appliances[key] && typeof source.appliances[key] === 'object'
+        ? source.appliances[key]
+        : null;
+      var item = rawItem || {};
+      var enabled = fallback.enabled;
+      if (rawItem) {
+        if (typeof rawItem.enabled === 'boolean') {
+          enabled = rawItem.enabled;
+        } else {
+          enabled = numberOr(rawItem.hours, fallback.hours) > 0;
+        }
+      }
+      state.appliances[key] = {
+        watts: roundTo(
+          clamp(numberOr(item.watts, fallback.watts), def.powerMin, def.powerMax),
+          def.powerStep
+        ),
+        hours: roundTo(
+          clamp(numberOr(item.hours, fallback.hours), 0, 24),
+          0.5
+        ),
+        enabled: enabled
+      };
+    });
+
+    Object.keys(MODEL.transit).forEach(function (key) {
+      var def = MODEL.transit[key];
+      var hasRawTrip = !!(source.trips && Object.prototype.hasOwnProperty.call(source.trips, key));
+      var rawValue = hasRawTrip ? source.trips[key] : undefined;
+      state.trips[key] = clamp(numberOr(rawValue, def.defaultValue), def.min, def.max);
+      if (source.tripEnabled && typeof source.tripEnabled[key] === 'boolean') {
+        state.tripEnabled[key] = source.tripEnabled[key];
+      } else if (hasRawTrip) {
+        state.tripEnabled[key] = numberOr(rawValue, def.defaultValue) > 0;
+      } else {
+        state.tripEnabled[key] = defaults.tripEnabled[key];
+      }
+    });
+
+    return state;
+  }
+
+  function activityLabel(met) {
+    if (met < 1.5) return '静坐';
+    if (met < 2.2) return '站立';
+    if (met < 3.2) return '散步';
+    if (met < 4.6) return '快走';
+    if (met < 6.2) return '慢跑';
+    if (met < 7.6) return '骑行';
+    if (met < 8.6) return '跑步';
+    return '高强度';
+  }
+
+  function bmiLabel(bmi) {
+    if (bmi < 18.5) return '偏轻';
+    if (bmi < 24) return '正常';
+    if (bmi < 28) return '偏高';
+    return '肥胖';
+  }
+
+  function equivalentsFor(kwh) {
+    var n = Math.max(0, Number(kwh) || 0);
+    return {
+      coalKg: n * MODEL.equivalence.kgcePerKwh,
+      teslaKm: n * MODEL.equivalence.teslaModelXKmPerKwh
+    };
+  }
+
+  function evaluateGrade(kwh) {
+    var n = Math.max(0, Number(kwh) || 0);
+    var levels = MODEL.gradeLevels;
+    for (var i = 0; i < levels.length; i += 1) {
+      var level = levels[i];
+      if (n <= level.max || i === levels.length - 1) {
+        return {
+          level: i + 1,
+          total: levels.length,
+          label: level.label,
+          text: level.text,
+          max: isFinite(level.max) ? level.max : null
+        };
+      }
+    }
+    return {
+      level: levels.length,
+      total: levels.length,
+      label: levels[levels.length - 1].label,
+      text: levels[levels.length - 1].text,
+      max: null
+    };
+  }
+
+  function calc(rawState) {
+    var state = normalizeState(rawState);
+
+    // 自体：年龄、身高、体重决定基础代谢，步数决定活动时长，MET 决定活动强度。
+    var bmrKcal = 10 * state.weight + 6.25 * state.height -
+      MODEL.body.bmrAgeCoefficient * state.age + MODEL.body.bmrSexAverageConstant;
+    var restPowerW = bmrKcal * MODEL.body.kcalPerDayToWatt;
+    var activePowerW = restPowerW * state.met;
+    var walkMinutes = state.steps / MODEL.body.stepsPerMinute;
+    var activeHours = walkMinutes / 60;
+    var activityKwh = restPowerW * (state.met - 1) * activeHours / 1000;
+    var bodyKwh = restPowerW * 24 / 1000 + activityKwh;
+    var bodyKcal = bodyKwh * MODEL.body.kcalPerKwh;
+    var stepLengthM = state.height * MODEL.body.strideHeightFactor;
+    var distanceKm = state.steps * stepLengthM / 1000;
+    var bmi = state.weight / Math.pow(state.height / 100, 2);
+
+    var deviceItems = Object.keys(MODEL.devices).map(function (key) {
+      var def = MODEL.devices[key];
+      var values = state.devices[key];
+      var enabled = values.enabled !== false;
+      if (def.mode === 'power') {
+        var powerKwh = enabled ? values.watts * values.hours / 1000 : 0;
+        return {
+          key: key,
+          name: def.name,
+          icon: def.icon,
+          meta: def.meta,
+          mode: 'power',
+          enabled: enabled,
+          watts: values.watts,
+          hours: values.hours,
+          capacity: 0,
+          capacityUnit: '',
+          cycles: 0,
+          wallWhPerCharge: 0,
+          kwh: powerKwh,
+          averageW: powerKwh * 1000 / 24
+        };
+      }
+
+      var capacityWh = def.unit === 'Wh'
+        ? values.capacity
+        : values.capacity * MODEL.battery.voltage / 1000;
+      var wallWhPerCharge = capacityWh / MODEL.battery.efficiency;
+      var batteryKwh = enabled ? wallWhPerCharge * values.cycles / 1000 : 0;
+      return {
+        key: key,
+        name: def.name,
+        icon: def.icon,
+        meta: def.meta,
+        mode: 'battery',
+        enabled: enabled,
+        capacity: values.capacity,
+        capacityUnit: def.unit,
+        cycles: values.cycles,
+        watts: 0,
+        hours: 0,
+        wallWhPerCharge: wallWhPerCharge,
+        kwh: batteryKwh,
+        averageW: batteryKwh * 1000 / 24
+      };
+    });
+    var deviceKwh = deviceItems.reduce(function (sum, item) { return sum + item.kwh; }, 0);
+
+    var applianceItems = Object.keys(MODEL.appliances).map(function (key) {
+      var def = MODEL.appliances[key];
+      var values = state.appliances[key];
+      var enabled = values.enabled !== false;
+      var kwh = enabled ? values.watts * values.hours / 1000 : 0;
+      return {
+        key: key,
+        name: def.name,
+        icon: def.icon,
+        meta: def.meta,
+        enabled: enabled,
+        watts: values.watts,
+        hours: values.hours,
+        kwh: kwh,
+        averageW: kwh * 1000 / 24
+      };
+    });
+    var applianceKwh = applianceItems.reduce(function (sum, item) { return sum + item.kwh; }, 0);
+
+    var wifiKwh = MODEL.fixed.wifi.watts * MODEL.fixed.wifi.hours / 1000;
+    var baseKwh = MODEL.fixed.baseStation.kwhPerDay;
+    var cloudKwh = MODEL.fixed.cloud.kwhPerDay;
+    var fixedKwh = wifiKwh + baseKwh + cloudKwh;
+
+    var transitItems = Object.keys(MODEL.transit).map(function (key) {
+      var def = MODEL.transit[key];
+      var value = state.trips[key];
+      var enabled = state.tripEnabled[key] !== false;
+      var tripDistanceKm = def.unit === 'min' ? value / 60 * def.speedKmh : value;
+      var kwh = enabled ? tripDistanceKm * def.kwhPerKm : 0;
+      return {
+        key: key,
+        name: def.name,
+        icon: def.icon,
+        meta: def.meta,
+        form: def.form,
+        unit: def.unit,
+        unitLabel: def.unitLabel,
+        enabled: enabled,
+        value: value,
+        perPerson: !!def.perPerson,
+        distanceKm: tripDistanceKm,
+        kwhPerKm: def.kwhPerKm,
+        kwh: kwh,
+        liters: key === 'taxi' || key === 'iceCar' ? kwh / 9.1 : 0
+      };
+    });
+    var tripsKwh = transitItems.reduce(function (sum, item) { return sum + item.kwh; }, 0);
+    var transitKwh = fixedKwh + applianceKwh + tripsKwh;
+
+    var totalKwh = bodyKwh + deviceKwh + transitKwh;
+    var averageW = totalKwh * 1000 / 24;
+
+    return {
+      state: state,
+      body: {
+        bmrKcal: bmrKcal,
+        restPowerW: restPowerW,
+        activePowerW: activePowerW,
+        walkMinutes: walkMinutes,
+        activeHours: activeHours,
+        stepLengthM: stepLengthM,
+        distanceKm: distanceKm,
+        activityKwh: activityKwh,
+        activityKcal: activityKwh * MODEL.body.kcalPerKwh,
+        bmi: bmi,
+        bmiLabel: bmiLabel(bmi),
+        kwh: bodyKwh,
+        kcal: bodyKcal,
+        averageW: bodyKwh * 1000 / 24,
+        label: activityLabel(state.met)
+      },
+      device: {
+        items: deviceItems,
+        kwh: deviceKwh,
+        averageW: deviceKwh * 1000 / 24
+      },
+      appliance: {
+        items: applianceItems,
+        kwh: applianceKwh,
+        averageW: applianceKwh * 1000 / 24
+      },
+      transit: {
+        items: transitItems,
+        fixed: {
+          wifiKwh: wifiKwh,
+          baseKwh: baseKwh,
+          cloudKwh: cloudKwh,
+          kwh: fixedKwh
+        },
+        appliances: applianceItems,
+        appliancesKwh: applianceKwh,
+        tripsKwh: tripsKwh,
+        kwh: transitKwh,
+        averageW: transitKwh * 1000 / 24
+      },
+      totalKwh: totalKwh,
+      averageW: averageW
+    };
+  }
+
+  global.PowerModel = {
+    MODEL: MODEL,
+    DEFAULTS: DEFAULTS,
+    clone: clone,
+    normalizeState: normalizeState,
+    activityLabel: activityLabel,
+    bmiLabel: bmiLabel,
+    equivalentsFor: equivalentsFor,
+    evaluateGrade: evaluateGrade,
+    calc: calc
+  };
+}(typeof window !== 'undefined' ? window : this));
+
+  </script>
+  <script>
+/* 功耗计算器 — app shell & interactions */
+(function () {
+  'use strict';
+
+  var Model = window.PowerModel;
+  if (!Model) return;
+
+  var STORAGE_KEY = 'powercalc.state.v2';
+  var HISTORY_KEY = 'powercalc.history.v1';
+  var PROFILE_KEY = 'powercalc.profile.v1';
+  var ITEM_LOCKS_KEY = 'powercalc.itemLocks.v1';
+  var HISTORY_LIMIT = 730;
+  var TABS = ['body', 'device', 'transit', 'overview'];
+  var CORE_DEVICE_KEYS = ['phone', 'earbuds', 'tablet', 'desktop'];
+  var EXTRA_DEVICE_KEYS = ['laptop', 'powerbank', 'headphones', 'actioncam', 'camera', 'instax'];
+  var CORE_TRIP_KEYS = ['subway', 'ebike'];
+  var EXTRA_TRIP_KEYS = ['taxiEv', 'taxi', 'cityBus', 'evCar', 'iceCar'];
+  var INTERCITY_KEYS = ['coach', 'train', 'hsr', 'plane'];
+  var HERO_LABELS = {
+    body: '自体功耗',
+    device: '设备功耗',
+    transit: '周边功耗',
+    overview: '今日总功耗'
+  };
+  var MOOD_STOPS = [
+    { at: 0, rgb: [198, 222, 184] },
+    { at: 1.5, rgb: [174, 213, 232] },
+    { at: 4, rgb: [246, 209, 160] },
+    { at: 8, rgb: [242, 183, 166] },
+    { at: 14, rgb: [231, 184, 174] }
+  ];
+  var state = loadState();
+  var profile = loadProfile();
+  if (profile.complete) {
+    state.age = profile.age;
+    state.height = profile.height;
+    state.weight = profile.weight;
+  }
+  var history = loadHistory();
+  var itemLocks = loadItemLocks();
+  var currentTab = 'body';
+  var latestData = null;
+  var toastTimer = 0;
+  var modalCloseTimer = 0;
+  var profileCloseTimer = 0;
+  var lastFocused = null;
+  var isModalOpen = false;
+  var isProfileOpen = false;
+  var profileMode = 'settings';
+  var prefersReduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  var root = document.documentElement;
+  var stage = document.getElementById('stage');
+  var infoModal = document.getElementById('infoModal');
+  var infoSheet = document.getElementById('infoSheet');
+  var infoButton = document.getElementById('infoButton');
+  var closeInfoButton = document.getElementById('closeInfo');
+  var profileModal = document.getElementById('profileModal');
+  var profileSheet = document.getElementById('profileSheet');
+  var profileTitle = document.getElementById('profileTitle');
+  var profileKicker = document.getElementById('profileKicker');
+  var profileLead = document.getElementById('profileLead');
+  var profileAge = document.getElementById('profileAge');
+  var profileHeight = document.getElementById('profileHeight');
+  var profileWeight = document.getElementById('profileWeight');
+  var closeProfileButton = document.getElementById('closeProfileButton');
+  var saveProfileButton = document.getElementById('saveProfileButton');
+  var profileSettingsExtra = document.getElementById('profileSettingsExtra');
+  var configLockToggle = document.getElementById('configLockToggle');
+  var settingsButton = document.getElementById('settingsButton');
+  var editProfileButton = document.getElementById('editProfileButton');
+  var resetButton = document.getElementById('resetButton');
+  var toast = document.getElementById('toast');
+  var stepsInput = document.getElementById('stepsInput');
+  var metInput = document.getElementById('metInput');
+  var deviceList = document.getElementById('deviceList');
+  var deviceExtraList = document.getElementById('deviceExtraList');
+  var deviceExpandButton = document.getElementById('deviceExpandButton');
+  var deviceExpandMeta = document.getElementById('deviceExpandMeta');
+  var applianceList = document.getElementById('applianceList');
+  var transitList = document.getElementById('transitList');
+  var transitExtraList = document.getElementById('transitExtraList');
+  var transitInputList = document.getElementById('transitInputList');
+  var tripExtra = document.getElementById('tripExtra');
+  var tripExpandButton = document.getElementById('tripExpandButton');
+  var tripExpandMeta = document.getElementById('tripExpandMeta');
+  var heroOverview = document.getElementById('heroOverview');
+  var legendButtons = Array.prototype.slice.call(document.querySelectorAll('.legend-item[data-go-tab]'));
+  var tabButtons = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+
+  function loadState() {
+    try {
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return Model.normalizeState(Model.DEFAULTS);
+      return Model.normalizeState(JSON.parse(raw));
+    } catch (error) {
+      return Model.normalizeState(Model.DEFAULTS);
+    }
+  }
+
+  function saveState() {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+      /* 本地存储不可用时，应用仍然可以正常计算。 */
+    }
+  }
+
+  function loadProfile() {
+    try {
+      var raw = window.localStorage.getItem(PROFILE_KEY);
+      if (!raw) return { complete: false, age: 30, height: 170, weight: 68 };
+      var parsed = JSON.parse(raw);
+      if (!parsed || parsed.complete !== true) {
+        return { complete: false, age: 30, height: 170, weight: 68 };
+      }
+      return {
+        complete: true,
+        age: Math.round(Math.min(80, Math.max(16, Number(parsed.age) || 30))),
+        height: Math.round(Math.min(210, Math.max(140, Number(parsed.height) || 170))),
+        weight: Math.round(Math.min(120, Math.max(40, Number(parsed.weight) || 68)))
+      };
+    } catch (error) {
+      return { complete: false, age: 30, height: 170, weight: 68 };
+    }
+  }
+
+  function saveProfile() {
+    try {
+      window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    } catch (error) {
+      /* 本地存储不可用时，本次资料仍然有效。 */
+    }
+  }
+
+  function loadItemLocks() {
+    var result = { device: {}, appliance: {}, trip: {} };
+    try {
+      var parsed = JSON.parse(window.localStorage.getItem(ITEM_LOCKS_KEY) || '{}');
+      ['device', 'appliance', 'trip'].forEach(function (kind) {
+        var source = parsed && parsed[kind];
+        if (!source || typeof source !== 'object') return;
+        Object.keys(source).forEach(function (key) {
+          if (source[key] === true) result[kind][key] = true;
+        });
+      });
+    } catch (error) {
+      /* 没有固定状态也可以正常使用。 */
+    }
+    return result;
+  }
+
+  function saveItemLocks() {
+    try {
+      window.localStorage.setItem(ITEM_LOCKS_KEY, JSON.stringify(itemLocks));
+    } catch (error) {
+      /* 固定状态只影响本机交互。 */
+    }
+  }
+
+  function isItemLocked(kind, key) {
+    return !!(itemLocks[kind] && itemLocks[kind][key]);
+  }
+
+  function setItemLock(kind, key, value) {
+    if (!itemLocks[kind]) itemLocks[kind] = {};
+    if (value) {
+      itemLocks[kind][key] = true;
+    } else {
+      delete itemLocks[kind][key];
+    }
+    saveItemLocks();
+  }
+
+  function loadHistory() {
+    try {
+      var raw = window.localStorage.getItem(HISTORY_KEY);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map(function (entry) {
+        if (!entry || typeof entry.date !== 'string') return null;
+        var total = Number(entry.total);
+        if (!isFinite(total) || total < 0) return null;
+        return {
+          date: entry.date,
+          total: total,
+          body: Math.max(0, Number(entry.body) || 0),
+          device: Math.max(0, Number(entry.device) || 0),
+          transit: Math.max(0, Number(entry.transit) || 0)
+        };
+      }).filter(Boolean).sort(function (a, b) {
+        return a.date < b.date ? 1 : -1;
+      }).slice(0, HISTORY_LIMIT);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function saveHistory() {
+    try {
+      window.localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch (error) {
+      /* 历史只保存在本机；存储不可用时本次会话仍可查看。 */
+    }
+  }
+
+  function localDateKey(date) {
+    var year = date.getFullYear();
+    var month = ('0' + (date.getMonth() + 1)).slice(-2);
+    var day = ('0' + date.getDate()).slice(-2);
+    return year + '-' + month + '-' + day;
+  }
+
+  function recordHistory(data, dateOverride) {
+    var dateKey = localDateKey(new Date());
+    if (dateOverride && /^\d{4}-\d{2}-\d{2}$/.test(String(dateOverride))) {
+      dateKey = String(dateOverride);
+    }
+    var entry = {
+      date: dateKey,
+      total: Number(data.totalKwh.toFixed(3)),
+      body: Number(data.body.kwh.toFixed(3)),
+      device: Number(data.device.kwh.toFixed(3)),
+      transit: Number(data.transit.kwh.toFixed(3))
+    };
+    var found = false;
+    for (var i = 0; i < history.length; i += 1) {
+      if (history[i].date === dateKey) {
+        history[i] = entry;
+        found = true;
+        break;
+      }
+    }
+    if (!found) history.push(entry);
+    history.sort(function (a, b) {
+      return a.date < b.date ? 1 : -1;
+    });
+    if (history.length > HISTORY_LIMIT) history = history.slice(0, HISTORY_LIMIT);
+    saveHistory();
+  }
+
+  function clearDailyUsage(dayKey) {
+    Object.keys(Model.MODEL.devices).forEach(function (key) {
+      var def = Model.MODEL.devices[key];
+      if (def.mode === 'power') {
+        state.devices[key].hours = 0;
+      } else {
+        state.devices[key].cycles = 0;
+      }
+    });
+    Object.keys(Model.MODEL.appliances).forEach(function (key) {
+      state.appliances[key].hours = 0;
+    });
+    Object.keys(Model.MODEL.transit).forEach(function (key) {
+      state.trips[key] = 0;
+    });
+    state.steps = 0;
+    state.met = 1.3;
+    state.day = dayKey;
+    itemLocks = { device: {}, appliance: {}, trip: {} };
+    saveItemLocks();
+    latestData = null;
+  }
+
+  function rolloverDayIfNeeded() {
+    var today = localDateKey(new Date());
+    if (!state.day) {
+      // Existing installs predate the day marker. Clear once on the first
+      // launch after this update. A brand-new install (no profile/history)
+      // keeps the sample values until the user finishes onboarding.
+      if (history.length > 0 || profile.complete) {
+        clearDailyUsage(today);
+        saveState();
+        return true;
+      }
+      state.day = today;
+      saveState();
+      return false;
+    }
+    if (state.day === today) return false;
+
+    // Save the previous day's numbers under the previous day first, then
+    // clear only the adjustable daily usage. Profile, selected items, device
+    // capacities and fixed daily items stay.
+    recordHistory(latestData || Model.calc(state), state.day);
+    clearDailyUsage(today);
+    saveState();
+    return true;
+  }
+
+  function syncDailyUI() {
+    applyBodyInputs();
+    applyDeviceInputs();
+    applyApplianceInputs();
+    applyTransitInputs();
+    render();
+    saveState();
+  }
+
+  function handleDayRollover() {
+    if (!rolloverDayIfNeeded()) return;
+    syncDailyUI();
+    showToast('新的一天：昨日用量已归档，今日可调用量已归零');
+  }
+
+  function renderGrade(data) {
+    var card = document.getElementById('gradeCard');
+    if (!card) return;
+    var grade = Model.evaluateGrade(data.transit.kwh);
+    setText('gradeIndex', ('0' + grade.level).slice(-2));
+    setText('gradeLabel', '今日评价 · ' + grade.label);
+    setText('gradeText', grade.text);
+    setText('gradeMetric', '按周边 ' + formatEnergy(data.transit.kwh) + ' kWh 评定');
+    card.setAttribute('data-level', String(grade.level));
+    card.setAttribute('aria-label', '今日周边功耗评价：' + grade.label + '，' + grade.text);
+    Array.prototype.forEach.call(card.querySelectorAll('.grade-scale i'), function (dot, index) {
+      dot.classList.toggle('is-on', index < grade.level);
+    });
+  }
+
+  function renderHistory(data) {
+    var container = document.getElementById('historyBars');
+    if (!container) return;
+    var today = new Date();
+    today.setHours(12, 0, 0, 0);
+    var recordByDate = {};
+    history.forEach(function (entry) {
+      recordByDate[entry.date] = entry;
+    });
+
+    var days = [];
+    var max = Math.max(data.totalKwh, 1);
+    for (var offset = 6; offset >= 0; offset -= 1) {
+      var date = new Date(today.getTime());
+      date.setDate(date.getDate() - offset);
+      var key = localDateKey(date);
+      var record = recordByDate[key] || null;
+      if (record) max = Math.max(max, record.total);
+      days.push({ date: date, key: key, record: record, isToday: offset === 0 });
+    }
+
+    var weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    var labels = [];
+    container.innerHTML = days.map(function (day) {
+      var total = day.record ? day.record.total : 0;
+      var transit = day.record ? day.record.transit : 0;
+      var grade = day.record ? Model.evaluateGrade(transit) : null;
+      var height = day.record ? Math.max(8, Math.round(total / max * 100)) : 0;
+      var label = day.isToday ? '今天' : weekdays[day.date.getDay()];
+      var aria = day.isToday
+        ? '今天周边 ' + formatEnergy(transit) + ' 千瓦时' + (grade ? '，' + grade.label : '，暂无记录')
+        : (day.date.getMonth() + 1) + '月' + day.date.getDate() + '日，' +
+          (day.record ? '周边 ' + formatEnergy(transit) + ' 千瓦时，' + grade.label : '暂无记录');
+      labels.push(aria);
+      return '<div class="history-day' +
+        (day.record ? ' has-record' : '') +
+        (day.isToday ? ' is-today' : '') +
+        '" data-level="' + (grade ? grade.level : 0) + '" aria-label="' + aria + '">' +
+        '<div class="history-bar-track"><span class="history-bar-fill" style="height:' + height + '%"></span></div>' +
+        '<span class="history-date">' + label + '</span>' +
+        '</div>';
+    }).join('');
+    container.setAttribute('aria-label', labels.join('；'));
+
+    var currentGrade = Model.evaluateGrade(data.transit.kwh);
+    setText('historyCaption', '今天周边 ' + formatEnergy(data.transit.kwh) + ' kWh · ' +
+      currentGrade.label + '；总 ' + formatEnergy(data.totalKwh) + ' kWh，本机已保存 ' + history.length + ' 天。');
+  }
+
+  function icon(name, className) {
+    return '<svg class="' + (className || 'icon') + '" aria-hidden="true"><use href="#i-' + name + '"></use></svg>';
+  }
+
+  function setText(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }
+
+  function formatEnergy(value) {
+    var n = Math.max(0, Number(value) || 0);
+    if (n >= 100) return n.toFixed(1);
+    return n.toFixed(2);
+  }
+
+  function formatDeviceEnergy(value) {
+    var n = Math.max(0, Number(value) || 0);
+    if (n >= 100) return n.toFixed(1);
+    if (n >= 0.1) return n.toFixed(2);
+    return n.toFixed(3);
+  }
+
+  function formatPower(value) {
+    var n = Math.max(0, Number(value) || 0);
+    if (n >= 1000) return (n / 1000).toFixed(2) + ' kW';
+    if (n >= 10) return Math.round(n) + ' W';
+    if (n >= 1) return n.toFixed(1) + ' W';
+    return n.toFixed(2) + ' W';
+  }
+
+  function formatInteger(value) {
+    return Math.round(Number(value) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  function formatCycles(value) {
+    return String(parseFloat((Number(value) || 0).toFixed(2)));
+  }
+
+  function formatCoal(kg) {
+    var n = Math.max(0, Number(kg) || 0);
+    if (n >= 0.1) return n.toFixed(2);
+    if (n >= 0.01) return n.toFixed(3);
+    return n.toFixed(4);
+  }
+
+  function formatTeslaKm(km) {
+    var n = Math.max(0, Number(km) || 0);
+    if (n >= 100) return n.toFixed(0);
+    return n.toFixed(1);
+  }
+
+  function formatPercent(value, total) {
+    if (!total || total <= 0 || value <= 0) return '0%';
+    var pct = value / total * 100;
+    if (pct < 1) return '<1%';
+    return Math.round(pct) + '%';
+  }
+
+  function formatDate() {
+    var date = new Date();
+    var weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    setText('dateLabel', (date.getMonth() + 1) + '月' + date.getDate() + '日 · ' + weekdays[date.getDay()]);
+  }
+
+  function setRangeFill(input) {
+    if (!input) return;
+    var min = Number(input.min) || 0;
+    var max = Number(input.max) || 100;
+    var value = Number(input.value) || 0;
+    var pct = max === min ? 0 : (value - min) / (max - min) * 100;
+    pct = Math.max(0, Math.min(100, pct));
+    input.style.setProperty('--pct', pct + '%');
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function moodColor(kwh) {
+    var value = Math.max(0, Number(kwh) || 0);
+    if (value >= MOOD_STOPS[MOOD_STOPS.length - 1].at) {
+      return MOOD_STOPS[MOOD_STOPS.length - 1].rgb.slice();
+    }
+    for (var i = 1; i < MOOD_STOPS.length; i += 1) {
+      if (value <= MOOD_STOPS[i].at) {
+        var prev = MOOD_STOPS[i - 1];
+        var next = MOOD_STOPS[i];
+        var t = (value - prev.at) / (next.at - prev.at);
+        return [
+          Math.round(prev.rgb[0] + (next.rgb[0] - prev.rgb[0]) * t),
+          Math.round(prev.rgb[1] + (next.rgb[1] - prev.rgb[1]) * t),
+          Math.round(prev.rgb[2] + (next.rgb[2] - prev.rgb[2]) * t)
+        ];
+      }
+    }
+    return MOOD_STOPS[0].rgb.slice();
+  }
+
+  function mixRgb(base, color, ratio) {
+    return [
+      Math.round(base[0] + (color[0] - base[0]) * ratio),
+      Math.round(base[1] + (color[1] - base[1]) * ratio),
+      Math.round(base[2] + (color[2] - base[2]) * ratio)
+    ];
+  }
+
+  function applyMood(kwh) {
+    var color = moodColor(kwh);
+    // Keep the whole page in warm, high-key tints. High energy should feel
+    // sun-baked rather than "lights out": never interpolate toward black.
+    var pageTop = mixRgb([250, 248, 243], color, 0.22);
+    var pageBg = mixRgb([247, 244, 238], color, 0.06);
+    root.style.setProperty('--mood-rgb', color.join(', '));
+    root.style.setProperty('--page-top', 'rgb(' + pageTop.join(', ') + ')');
+    root.style.setProperty('--page-bg', 'rgb(' + pageBg.join(', ') + ')');
+  }
+
+  function itemToggleMarkup(kind, key, enabled, label) {
+    var locked = enabled && isItemLocked(kind, key);
+    var state = locked ? 'fixed' : (enabled ? 'on' : 'off');
+    var action = locked ? '已固定，点击取消计入' : (enabled ? '已计入，点击固定' : '未计入，点击勾选');
+    return '<button class="item-toggle' + (enabled ? ' is-checked' : '') + (locked ? ' is-locked' : '') + '" type="button" data-state="' + state + '" aria-label="' + label + '：' + action + '" data-toggle-' + kind + '="' + key + '">' +
+      '<svg class="icon" aria-hidden="true"><use href="' + (locked ? '#i-lock' : '#i-check') + '"></use></svg>' +
+      '</button>';
+  }
+
+  function deviceCardMarkup(key) {
+    var def = Model.MODEL.devices[key];
+    var values = state.devices[key];
+    var enabled = values.enabled !== false;
+    var top = '' +
+      '<div class="device-top">' +
+        '<span class="device-icon">' + icon(def.icon) + '</span>' +
+        '<div class="device-copy">' +
+          '<h3>' + def.name + '</h3>' +
+          '<p>' + def.meta + '</p>' +
+        '</div>' +
+        '<div class="device-energy"><span data-device-kwh="' + key + '">0.000</span><small>kWh</small></div>' +
+        itemToggleMarkup('device', key, enabled, def.name) +
+      '</div>';
+    var controls = '';
+
+    if (def.mode === 'power') {
+      controls += '' +
+        '<div class="slider-head device-slider-head">' +
+          '<label class="slider-label" for="device-power-' + key + '">主机功率</label>' +
+          '<output class="slider-output" for="device-power-' + key + '" id="device-power-out-' + key + '">' + formatInteger(values.watts) + ' W</output>' +
+        '</div>' +
+        '<input class="range" id="device-power-' + key + '" type="range" min="' + def.powerMin + '" max="' + def.powerMax + '" step="' + def.powerStep + '" value="' + values.watts + '" data-device-power="' + key + '" aria-label="' + def.name + '功率，单位瓦">' +
+        '<div class="range-ends"><span>' + def.powerMin + ' W</span><span>' + def.powerMax + ' W</span></div>' +
+        '<div class="slider-head device-slider-head second">' +
+          '<label class="slider-label" for="device-hours-' + key + '">每日使用</label>' +
+          '<output class="slider-output" for="device-hours-' + key + '" id="device-hours-out-' + key + '">' + formatCycles(values.hours) + ' 小时</output>' +
+        '</div>' +
+        '<input class="range" id="device-hours-' + key + '" type="range" min="' + def.hoursMin + '" max="' + def.hoursMax + '" step="' + def.hoursStep + '" value="' + values.hours + '" data-device-hours="' + key + '" aria-label="' + def.name + '每日使用时长，单位小时">' +
+        '<div class="range-ends"><span>0 小时</span><span>24 小时</span></div>' +
+        '<div class="device-foot"><span>功率 × 时长</span><span data-device-avg="' + key + '">平均 0.00 W</span></div>';
+    } else {
+      controls += '' +
+        '<div class="slider-head device-slider-head">' +
+          '<label class="slider-label" for="device-cap-' + key + '">电池容量</label>' +
+          '<output class="slider-output" for="device-cap-' + key + '" id="device-cap-out-' + key + '">' + formatInteger(values.capacity) + ' ' + def.unit + '</output>' +
+        '</div>' +
+        '<input class="range" id="device-cap-' + key + '" type="range" min="' + def.capacityMin + '" max="' + def.capacityMax + '" step="' + def.capacityStep + '" value="' + values.capacity + '" data-device-capacity="' + key + '" aria-label="' + def.name + '电池容量，单位' + (def.unit === 'Wh' ? '瓦时' : '毫安时') + '">' +
+        '<div class="range-ends"><span>' + formatInteger(def.capacityMin) + ' ' + def.unit + '</span><span>' + formatInteger(def.capacityMax) + ' ' + def.unit + '</span></div>' +
+        '<div class="slider-head device-slider-head second">' +
+          '<label class="slider-label" for="device-cycles-' + key + '">每日完整充电</label>' +
+          '<output class="slider-output" for="device-cycles-' + key + '" id="device-cycles-out-' + key + '">' + formatCycles(values.cycles) + ' 次</output>' +
+        '</div>' +
+        '<input class="range" id="device-cycles-' + key + '" type="range" min="0" max="' + Model.MODEL.battery.cyclesMax + '" step="' + Model.MODEL.battery.cyclesStep + '" value="' + values.cycles + '" data-device-cycles="' + key + '" aria-label="' + def.name + '每日完整充电次数">' +
+        '<div class="range-ends"><span>0 次</span><span>3 次</span></div>' +
+        '<div class="device-foot"><span data-device-per-charge="' + key + '">每次 0 Wh</span><span data-device-avg="' + key + '">平均 0.00 W</span></div>';
+    }
+
+    return '<article class="device-card' + (enabled ? '' : ' is-off') + '" data-device-card="' + key + '">' + top + controls + '</article>';
+  }
+
+  function buildDeviceList() {
+    deviceList.innerHTML = CORE_DEVICE_KEYS.map(deviceCardMarkup).join('');
+    deviceExtraList.innerHTML = EXTRA_DEVICE_KEYS.map(deviceCardMarkup).join('');
+    updateExpandMeta();
+  }
+
+  function buildApplianceList() {
+    var html = Object.keys(Model.MODEL.appliances).map(function (key) {
+      var def = Model.MODEL.appliances[key];
+      var values = state.appliances[key];
+      var enabled = values.enabled !== false;
+      return '' +
+        '<article class="device-card appliance-card' + (enabled ? '' : ' is-off') + '" data-appliance-card="' + key + '">' +
+          '<div class="device-top">' +
+            '<span class="device-icon">' + icon(def.icon) + '</span>' +
+            '<div class="device-copy">' +
+              '<h3>' + def.name + '</h3>' +
+              '<p>' + def.meta + '</p>' +
+            '</div>' +
+            '<div class="device-energy"><span data-appliance-kwh="' + key + '">0.000</span><small>kWh</small></div>' +
+            itemToggleMarkup('appliance', key, enabled, def.name) +
+          '</div>' +
+          '<div class="slider-head device-slider-head">' +
+            '<label class="slider-label" for="appliance-power-' + key + '">电器功率</label>' +
+            '<output class="slider-output" for="appliance-power-' + key + '" id="appliance-power-out-' + key + '">' + formatInteger(values.watts) + ' W</output>' +
+          '</div>' +
+          '<input class="range" id="appliance-power-' + key + '" type="range" min="' + def.powerMin + '" max="' + def.powerMax + '" step="' + def.powerStep + '" value="' + values.watts + '" data-appliance-power="' + key + '" aria-label="' + def.name + '功率，单位瓦">' +
+          '<div class="range-ends"><span>' + def.powerMin + ' W</span><span>' + def.powerMax + ' W</span></div>' +
+          '<div class="slider-head device-slider-head second">' +
+            '<label class="slider-label" for="appliance-hours-' + key + '">每日使用</label>' +
+            '<output class="slider-output" for="appliance-hours-' + key + '" id="appliance-hours-out-' + key + '">' + formatCycles(values.hours) + ' 小时</output>' +
+          '</div>' +
+          '<input class="range" id="appliance-hours-' + key + '" type="range" min="0" max="24" step="0.5" value="' + values.hours + '" data-appliance-hours="' + key + '" aria-label="' + def.name + '每日使用时长，单位小时">' +
+          '<div class="range-ends"><span>0 小时</span><span>24 小时</span></div>' +
+          '<div class="device-foot"><span>功率 × 时长</span><span data-appliance-avg="' + key + '">平均 0.00 W</span></div>' +
+        '</article>';
+    }).join('');
+    applianceList.innerHTML = html;
+  }
+
+  function tripActionLabel(key, unit) {
+    if (unit === 'min') return key === 'subway' ? '乘坐时长' : '行驶时长';
+    return key === 'cityBus' ? '乘坐里程' : '行驶里程';
+  }
+
+  function tripCardMarkup(key) {
+    var def = Model.MODEL.transit[key];
+    var value = state.trips[key];
+    var enabled = state.tripEnabled[key] !== false;
+    var mid = Math.round(def.max / 2);
+    var action = tripActionLabel(key, def.unit);
+    var rateLabel = (def.perPerson ? '人均 ' : '') + def.kwhPerKm.toFixed(3) + ' kWh/km';
+    return '' +
+      '<article class="trip-card' + (enabled ? '' : ' is-off') + '" data-trip-card="' + key + '">' +
+        '<div class="trip-top">' +
+          '<span class="trip-icon">' + icon(def.icon) + '</span>' +
+          '<div class="trip-copy">' +
+            '<h3>' + def.name + '</h3>' +
+            '<p>' + def.meta + '</p>' +
+          '</div>' +
+          '<div class="trip-energy"><span data-trip-kwh="' + key + '">0.00</span><small>kWh</small></div>' +
+          itemToggleMarkup('trip', key, enabled, def.name) +
+        '</div>' +
+        '<div class="slider-head">' +
+          '<label class="slider-label" for="trip-' + key + '">' + action + '</label>' +
+          '<output class="slider-output" for="trip-' + key + '" id="trip-out-' + key + '">' + value + ' ' + def.unitLabel + '</output>' +
+        '</div>' +
+        '<input class="range" id="trip-' + key + '" type="range" min="' + def.min + '" max="' + def.max + '" step="' + def.step + '" value="' + value + '" data-trip="' + key + '" aria-label="' + def.name + action + '，单位' + def.unitLabel + '">' +
+        '<div class="range-ends"><span>0</span><span>' + mid + '</span><span>' + def.max + ' ' + def.unitLabel + '</span></div>' +
+        '<div class="trip-foot">' +
+          '<strong data-trip-distance="' + key + '">≈ 0.0 km</strong>' +
+          '<span data-trip-rate="' + key + '">' + rateLabel + '</span>' +
+        '</div>' +
+      '</article>';
+  }
+
+  function tripInputCardMarkup(key) {
+    var def = Model.MODEL.transit[key];
+    var value = state.trips[key];
+    var enabled = state.tripEnabled[key] !== false;
+    return '' +
+      '<article class="trip-input-card' + (enabled ? '' : ' is-off') + '" data-trip-card="' + key + '">' +
+        '<div class="trip-input-top">' +
+          '<span class="trip-icon">' + icon(def.icon) + '</span>' +
+          '<div class="trip-copy">' +
+            '<h3>' + def.name + '</h3>' +
+            '<p>' + (def.perPerson ? '人均 ' : '') + def.kwhPerKm.toFixed(3) + ' kWh/km</p>' +
+          '</div>' +
+          itemToggleMarkup('trip', key, enabled, def.name) +
+        '</div>' +
+        '<div class="trip-input-controls">' +
+          '<label class="trip-number">' +
+            '<input type="number" min="' + def.min + '" max="' + def.max + '" step="' + def.step + '" value="' + value + '" data-trip-number="' + key + '" inputmode="decimal" enterkeyhint="done" aria-label="' + def.name + '里程，单位公里">' +
+            '<span>km</span>' +
+          '</label>' +
+          '<strong data-trip-kwh="' + key + '">0.00 kWh</strong>' +
+        '</div>' +
+      '</article>';
+  }
+
+  function buildTransitList() {
+    transitList.innerHTML = CORE_TRIP_KEYS.map(tripCardMarkup).join('');
+    transitExtraList.innerHTML = EXTRA_TRIP_KEYS.map(tripCardMarkup).join('');
+    transitInputList.innerHTML = INTERCITY_KEYS.map(tripInputCardMarkup).join('');
+    updateExpandMeta();
+  }
+
+  function countExtraEnabled(keys, getter) {
+    return keys.filter(function (key) { return getter(key); }).length;
+  }
+
+  function setToggleState(kind, key, enabled, label) {
+    var button = document.querySelector('[data-toggle-' + kind + '="' + key + '"]');
+    if (!button) return;
+    var locked = enabled && isItemLocked(kind, key);
+    button.classList.toggle('is-checked', enabled);
+    button.classList.toggle('is-locked', locked);
+    button.setAttribute('data-state', locked ? 'fixed' : (enabled ? 'on' : 'off'));
+    var action = locked ? '已固定，点击取消计入' : (enabled ? '已计入，点击固定' : '未计入，点击勾选');
+    button.setAttribute('aria-label', (label || '这个项目') + '：' + action);
+    var use = button.querySelector('use');
+    if (use) use.setAttribute('href', locked ? '#i-lock' : '#i-check');
+  }
+
+  function itemLabel(kind, key) {
+    if (kind === 'device') return (Model.MODEL.devices[key] || {}).name || key;
+    if (kind === 'appliance') return (Model.MODEL.appliances[key] || {}).name || key;
+    return (Model.MODEL.transit[key] || {}).name || key;
+  }
+
+  function isItemEnabled(kind, key) {
+    if (kind === 'device') return state.devices[key].enabled !== false;
+    if (kind === 'appliance') return state.appliances[key].enabled !== false;
+    return state.tripEnabled[key] !== false;
+  }
+
+  function setItemEnabled(kind, key, value) {
+    if (kind === 'device') state.devices[key].enabled = value;
+    else if (kind === 'appliance') state.appliances[key].enabled = value;
+    else state.tripEnabled[key] = value;
+  }
+
+  function cycleItemState(kind, key) {
+    var enabled = isItemEnabled(kind, key);
+    var locked = enabled && isItemLocked(kind, key);
+    var label = itemLabel(kind, key);
+    if (!enabled) {
+      setItemEnabled(kind, key, true);
+      setItemLock(kind, key, false);
+      showToast('已计入' + label);
+    } else if (!locked) {
+      setItemLock(kind, key, true);
+      showToast('已固定' + label);
+    } else {
+      setItemEnabled(kind, key, false);
+      setItemLock(kind, key, false);
+      showToast('已取消计入' + label);
+    }
+    saveState();
+    render();
+  }
+
+  function renderConfigLockToggle() {
+    if (!configLockToggle) return;
+    var locked = state.configLocked === true;
+    configLockToggle.classList.toggle('is-on', locked);
+    configLockToggle.setAttribute('aria-checked', locked ? 'true' : 'false');
+  }
+
+  function applyConfigLockState() {
+    if (state.configLocked !== true) return;
+    Array.prototype.forEach.call(document.querySelectorAll(
+      '[data-device-capacity], [data-device-power], [data-appliance-power]'
+    ), function (control) {
+      control.disabled = true;
+    });
+  }
+
+  function toggleConfigLock() {
+    state.configLocked = state.configLocked !== true;
+    saveState();
+    renderConfigLockToggle();
+    applyItemCardLocks();
+    applyConfigLockState();
+    showToast(state.configLocked ? '已锁定设备容量和电器功率' : '已解除容量和功率锁定');
+  }
+
+  function applyItemCardLocks() {
+    Object.keys(Model.MODEL.devices).forEach(function (key) {
+      var card = document.querySelector('[data-device-card="' + key + '"]');
+      var locked = isItemEnabled('device', key) && isItemLocked('device', key);
+      setToggleState('device', key, isItemEnabled('device', key), itemLabel('device', key));
+      if (!card) return;
+      card.classList.toggle('is-fixed', locked);
+      Array.prototype.forEach.call(card.querySelectorAll('input[type="range"]'), function (control) {
+        control.disabled = locked;
+      });
+    });
+
+    Object.keys(Model.MODEL.appliances).forEach(function (key) {
+      var card = document.querySelector('[data-appliance-card="' + key + '"]');
+      var locked = isItemEnabled('appliance', key) && isItemLocked('appliance', key);
+      setToggleState('appliance', key, isItemEnabled('appliance', key), itemLabel('appliance', key));
+      if (!card) return;
+      card.classList.toggle('is-fixed', locked);
+      Array.prototype.forEach.call(card.querySelectorAll('input[type="range"]'), function (control) {
+        control.disabled = locked;
+      });
+    });
+
+    Object.keys(Model.MODEL.transit).forEach(function (key) {
+      var card = document.querySelector('[data-trip-card="' + key + '"]');
+      var locked = isItemEnabled('trip', key) && isItemLocked('trip', key);
+      setToggleState('trip', key, isItemEnabled('trip', key), itemLabel('trip', key));
+      if (!card) return;
+      card.classList.toggle('is-fixed', locked);
+      Array.prototype.forEach.call(card.querySelectorAll('input[type="range"], [data-trip-number]'), function (control) {
+        control.disabled = locked;
+      });
+    });
+  }
+
+  function toggleExpand(button, target, closedLabel, openLabel) {
+    if (!button || !target) return;
+    var expanded = target.hidden;
+    target.hidden = !expanded;
+    button.classList.toggle('is-open', expanded);
+    button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    var label = button.querySelector('span');
+    if (label) label.textContent = expanded ? openLabel : closedLabel;
+  }
+
+  function updateExpandMeta() {
+    var deviceSelected = countExtraEnabled(EXTRA_DEVICE_KEYS, function (key) {
+      return state.devices[key].enabled !== false;
+    });
+    var tripSelected = countExtraEnabled(EXTRA_TRIP_KEYS.concat(INTERCITY_KEYS), function (key) {
+      return state.tripEnabled[key] !== false;
+    });
+    if (deviceExpandMeta) {
+      deviceExpandMeta.textContent = deviceSelected
+        ? '已选 ' + deviceSelected + ' / ' + EXTRA_DEVICE_KEYS.length
+        : EXTRA_DEVICE_KEYS.length + ' 项可选';
+    }
+    if (tripExpandMeta) {
+      tripExpandMeta.textContent = tripSelected
+        ? '已选 ' + tripSelected + ' / ' + (EXTRA_TRIP_KEYS.length + INTERCITY_KEYS.length)
+        : (EXTRA_TRIP_KEYS.length + INTERCITY_KEYS.length) + ' 项可选';
+    }
+  }
+
+  function applyBodyInputs() {
+    stepsInput.value = state.steps;
+    metInput.value = state.met;
+    [stepsInput, metInput].forEach(setRangeFill);
+    stepsInput.setAttribute('aria-valuetext', state.steps + ' 步');
+    metInput.setAttribute('aria-valuetext', Model.activityLabel(state.met) + '，' + state.met.toFixed(2) + ' MET');
+  }
+
+  function applyDeviceInputs() {
+    Object.keys(Model.MODEL.devices).forEach(function (key) {
+      var def = Model.MODEL.devices[key];
+      var values = state.devices[key];
+      if (def.mode === 'power') {
+        var powerInput = document.getElementById('device-power-' + key);
+        var hoursInput = document.getElementById('device-hours-' + key);
+        if (powerInput) {
+          powerInput.value = values.watts;
+          setRangeFill(powerInput);
+        }
+        if (hoursInput) {
+          hoursInput.value = values.hours;
+          setRangeFill(hoursInput);
+        }
+      } else {
+        var capacityInput = document.getElementById('device-cap-' + key);
+        var cyclesInput = document.getElementById('device-cycles-' + key);
+        if (capacityInput) {
+          capacityInput.value = values.capacity;
+          setRangeFill(capacityInput);
+        }
+        if (cyclesInput) {
+          cyclesInput.value = values.cycles;
+          setRangeFill(cyclesInput);
+        }
+      }
+    });
+  }
+
+  function applyApplianceInputs() {
+    Object.keys(Model.MODEL.appliances).forEach(function (key) {
+      var values = state.appliances[key];
+      var powerInput = document.getElementById('appliance-power-' + key);
+      var hoursInput = document.getElementById('appliance-hours-' + key);
+      if (powerInput) {
+        powerInput.value = values.watts;
+        setRangeFill(powerInput);
+      }
+      if (hoursInput) {
+        hoursInput.value = values.hours;
+        setRangeFill(hoursInput);
+      }
+    });
+  }
+
+  function applyTransitInputs() {
+    Object.keys(Model.MODEL.transit).forEach(function (key) {
+      var def = Model.MODEL.transit[key];
+      if (def.form === 'slider') {
+        var slider = document.getElementById('trip-' + key);
+        if (slider) {
+          slider.value = state.trips[key];
+          setRangeFill(slider);
+        }
+      } else {
+        var numberInput = document.querySelector('[data-trip-number="' + key + '"]');
+        if (numberInput) numberInput.value = state.trips[key];
+      }
+    });
+  }
+
+  function updateHero(data) {
+    var tab = currentTab;
+    var energy = tab === 'overview' ? data.totalKwh : data[tab].kwh;
+    var equivalents = Model.equivalentsFor(energy);
+    setText('heroLabel', HERO_LABELS[tab]);
+    setText('heroKwh', formatDeviceEnergy(energy));
+    setText('heroAverage', formatPower(energy * 1000 / 24));
+    setText('coalEquivalent', formatCoal(equivalents.coalKg));
+    setText('teslaEquivalent', formatTeslaKm(equivalents.teslaKm));
+    heroOverview.hidden = tab !== 'overview';
+    applyMood(energy);
+  }
+
+  function setTab(tab, options) {
+    if (TABS.indexOf(tab) < 0) tab = 'body';
+    var changed = tab !== currentTab;
+    currentTab = tab;
+    state.tab = tab;
+    root.setAttribute('data-tab', tab);
+
+    tabButtons.forEach(function (button) {
+      var active = button.getAttribute('data-tab') === tab;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+      button.setAttribute('tabindex', active ? '0' : '-1');
+    });
+
+    TABS.forEach(function (key) {
+      var panel = document.getElementById('panel-' + key);
+      if (!panel) return;
+      var active = key === tab;
+      panel.classList.toggle('is-active', active);
+      if (active) panel.removeAttribute('hidden');
+      else panel.setAttribute('hidden', '');
+    });
+
+    legendButtons.forEach(function (button) {
+      button.classList.toggle('is-active', button.getAttribute('data-go-tab') === tab);
+    });
+
+    if (changed || (options && options.resetScroll)) stage.scrollTop = 0;
+
+    if (!latestData) latestData = Model.calc(state);
+    updateHero(latestData);
+
+    try {
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', '#' + tab);
+      }
+    } catch (error) {
+      /* file:// WebView 中个别版本不允许改写 history，不影响使用。 */
+    }
+
+    saveState();
+  }
+
+  function render() {
+    var data = Model.calc(state);
+    latestData = data;
+    var total = data.totalKwh;
+    var shares = {
+      body: total > 0 ? data.body.kwh / total * 100 : 0,
+      device: total > 0 ? data.device.kwh / total * 100 : 0,
+      transit: total > 0 ? data.transit.kwh / total * 100 : 0
+    };
+
+    ['body', 'device', 'transit'].forEach(function (key) {
+      var segment = document.querySelector('[data-seg="' + key + '"]');
+      if (!segment) return;
+      segment.style.width = (shares[key] > 0 ? Math.max(shares[key], 1.1) : 0) + '%';
+      segment.classList.toggle('is-empty', data[key].kwh <= 0);
+    });
+    document.getElementById('energyBar').setAttribute(
+      'aria-label',
+      '自体 ' + formatEnergy(data.body.kwh) + ' kWh，占 ' + Math.round(shares.body) +
+      '%；设备 ' + formatEnergy(data.device.kwh) + ' kWh，占 ' + Math.round(shares.device) +
+      '%；周边 ' + formatEnergy(data.transit.kwh) + ' kWh，占 ' + Math.round(shares.transit) + '%。'
+    );
+    setText('bodyLegendKwh', formatEnergy(data.body.kwh));
+    setText('deviceLegendKwh', formatEnergy(data.device.kwh));
+    setText('transitLegendKwh', formatEnergy(data.transit.kwh));
+
+    setText('restPower', Math.round(data.body.restPowerW));
+    setText('activePower', Math.round(data.body.activePowerW));
+    setText('activeState', data.body.label + '时 · ' + state.met.toFixed(2) + ' MET');
+    setText('profileSummary', state.age + ' 岁 · ' + state.height + ' cm · ' + state.weight + ' kg');
+    setText('bmiOut', data.body.bmi.toFixed(1));
+    setText('bmiText', data.body.bmiLabel);
+    setText('stepsOut', formatInteger(state.steps));
+    setText('stepDistance', data.body.distanceKm.toFixed(1));
+    setText('stepMinutes', Math.round(data.body.walkMinutes));
+    setText('stepEnergy', formatEnergy(data.body.activityKwh));
+    setText('activityMinutesHint', Math.round(data.body.walkMinutes));
+    setText('metOut', state.met.toFixed(2));
+
+    stepsInput.setAttribute('aria-valuetext', formatInteger(state.steps) + ' 步，约 ' + data.body.distanceKm.toFixed(1) + ' 公里，活动 ' + Math.round(data.body.walkMinutes) + ' 分钟');
+    metInput.setAttribute('aria-valuetext', data.body.label + '，' + state.met.toFixed(2) + ' MET');
+    [stepsInput, metInput].forEach(setRangeFill);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-met]'), function (button) {
+      var active = Math.abs(Number(button.getAttribute('data-met')) - state.met) < 0.001;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-steps]'), function (button) {
+      var active = state.steps === Number(button.getAttribute('data-steps'));
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+
+    data.device.items.forEach(function (item) {
+      var card = document.querySelector('[data-device-card="' + item.key + '"]');
+      var kwhEl = document.querySelector('[data-device-kwh="' + item.key + '"]');
+      var avgEl = document.querySelector('[data-device-avg="' + item.key + '"]');
+      if (kwhEl) kwhEl.textContent = formatDeviceEnergy(item.kwh);
+      if (avgEl) avgEl.textContent = '平均 ' + formatPower(item.averageW);
+      setToggleState('device', item.key, item.enabled, item.name);
+
+      if (item.mode === 'power') {
+        var powerInput = document.getElementById('device-power-' + item.key);
+        var hoursInput = document.getElementById('device-hours-' + item.key);
+        var powerOut = document.getElementById('device-power-out-' + item.key);
+        var hoursOut = document.getElementById('device-hours-out-' + item.key);
+        if (powerOut) powerOut.textContent = formatInteger(item.watts) + ' W';
+        if (hoursOut) hoursOut.textContent = formatCycles(item.hours) + ' 小时';
+        if (card) card.classList.toggle('is-off', !item.enabled);
+        if (powerInput) {
+          if (powerInput.value !== String(item.watts)) powerInput.value = item.watts;
+          setRangeFill(powerInput);
+          powerInput.setAttribute('aria-valuetext', formatInteger(item.watts) + ' 瓦');
+        }
+        if (hoursInput) {
+          if (hoursInput.value !== String(item.hours)) hoursInput.value = item.hours;
+          setRangeFill(hoursInput);
+          hoursInput.setAttribute('aria-valuetext', formatCycles(item.hours) + ' 小时，每日 ' + formatDeviceEnergy(item.kwh) + ' 千瓦时');
+        }
+      } else {
+        var capacityInput = document.getElementById('device-cap-' + item.key);
+        var cyclesInput = document.getElementById('device-cycles-' + item.key);
+        var capacityOut = document.getElementById('device-cap-out-' + item.key);
+        var cyclesOut = document.getElementById('device-cycles-out-' + item.key);
+        var perChargeEl = document.querySelector('[data-device-per-charge="' + item.key + '"]');
+        if (capacityOut) capacityOut.textContent = formatInteger(item.capacity) + ' ' + item.capacityUnit;
+        if (cyclesOut) cyclesOut.textContent = formatCycles(item.cycles) + ' 次';
+        if (perChargeEl) perChargeEl.textContent = '每次 ' + item.wallWhPerCharge.toFixed(1) + ' Wh';
+        if (card) card.classList.toggle('is-off', !item.enabled);
+        if (capacityInput) {
+          if (capacityInput.value !== String(item.capacity)) capacityInput.value = item.capacity;
+          setRangeFill(capacityInput);
+          capacityInput.setAttribute('aria-valuetext', formatInteger(item.capacity) + ' ' + (item.capacityUnit === 'Wh' ? '瓦时' : '毫安时'));
+        }
+        if (cyclesInput) {
+          if (cyclesInput.value !== String(item.cycles)) cyclesInput.value = item.cycles;
+          setRangeFill(cyclesInput);
+          cyclesInput.setAttribute('aria-valuetext', formatCycles(item.cycles) + ' 次完整充电，每日 ' + formatDeviceEnergy(item.kwh) + ' 千瓦时');
+        }
+      }
+    });
+
+    data.appliance.items.forEach(function (item) {
+      var card = document.querySelector('[data-appliance-card="' + item.key + '"]');
+      var kwhEl = document.querySelector('[data-appliance-kwh="' + item.key + '"]');
+      var avgEl = document.querySelector('[data-appliance-avg="' + item.key + '"]');
+      var powerInput = document.getElementById('appliance-power-' + item.key);
+      var hoursInput = document.getElementById('appliance-hours-' + item.key);
+      var powerOut = document.getElementById('appliance-power-out-' + item.key);
+      var hoursOut = document.getElementById('appliance-hours-out-' + item.key);
+      if (kwhEl) kwhEl.textContent = formatDeviceEnergy(item.kwh);
+      if (avgEl) avgEl.textContent = '平均 ' + formatPower(item.averageW);
+      if (powerOut) powerOut.textContent = formatInteger(item.watts) + ' W';
+      if (hoursOut) hoursOut.textContent = formatCycles(item.hours) + ' 小时';
+      setToggleState('appliance', item.key, item.enabled, item.name);
+      if (card) card.classList.toggle('is-off', !item.enabled);
+      if (powerInput) {
+        if (powerInput.value !== String(item.watts)) powerInput.value = item.watts;
+        setRangeFill(powerInput);
+        powerInput.setAttribute('aria-valuetext', formatInteger(item.watts) + ' 瓦');
+      }
+      if (hoursInput) {
+        if (hoursInput.value !== String(item.hours)) hoursInput.value = item.hours;
+        setRangeFill(hoursInput);
+        hoursInput.setAttribute('aria-valuetext', formatCycles(item.hours) + ' 小时，每日 ' + formatDeviceEnergy(item.kwh) + ' 千瓦时');
+      }
+    });
+
+    data.transit.items.forEach(function (item) {
+      var card = document.querySelector('[data-trip-card="' + item.key + '"]');
+      var kwhEl = document.querySelector('[data-trip-kwh="' + item.key + '"]');
+      if (kwhEl) kwhEl.textContent = item.form === 'input' ? formatEnergy(item.kwh) + ' kWh' : formatEnergy(item.kwh);
+      setToggleState('trip', item.key, item.enabled, item.name);
+      if (item.form === 'input') {
+        var numberInput = document.querySelector('[data-trip-number="' + item.key + '"]');
+        if (numberInput && document.activeElement !== numberInput) numberInput.value = item.value;
+        if (card) card.classList.toggle('is-off', !item.enabled);
+        return;
+      }
+
+      var input = document.getElementById('trip-' + item.key);
+      var outEl = document.getElementById('trip-out-' + item.key);
+      var distanceEl = document.querySelector('[data-trip-distance="' + item.key + '"]');
+      var rateEl = document.querySelector('[data-trip-rate="' + item.key + '"]');
+      if (outEl) outEl.textContent = item.value + ' ' + item.unitLabel;
+      if (distanceEl) {
+        if (item.key === 'taxi' || item.key === 'iceCar') {
+          distanceEl.textContent = '≈ ' + item.liters.toFixed(2) + ' L 汽油';
+        } else {
+          distanceEl.textContent = '≈ ' + item.distanceKm.toFixed(1) + ' km';
+        }
+      }
+      if (rateEl) rateEl.textContent = (item.perPerson ? '人均 ' : '') + item.kwhPerKm.toFixed(3) + ' kWh/km';
+      if (card) card.classList.toggle('is-off', !item.enabled);
+      if (input) {
+        if (input.value !== String(item.value)) input.value = item.value;
+        setRangeFill(input);
+        input.setAttribute('aria-valuetext', item.value + ' ' + item.unitLabel + '，约 ' + formatEnergy(item.kwh) + ' 千瓦时');
+      }
+    });
+
+    setText('wifiFixedKwh', formatEnergy(data.transit.fixed.wifiKwh));
+    setText('baseFixedKwh', formatEnergy(data.transit.fixed.baseKwh));
+    setText('cloudFixedKwh', formatEnergy(data.transit.fixed.cloudKwh));
+    setText('fixedSubtotal', formatEnergy(data.transit.fixed.kwh) + ' kWh/天');
+    setText('applianceSubtotal', formatEnergy(data.transit.appliancesKwh) + ' kWh/天');
+    setText('travelSubtotal', formatEnergy(data.transit.tripsKwh) + ' kWh');
+
+    var categories = [
+      { key: 'body', name: '自体功耗', kwh: data.body.kwh },
+      { key: 'device', name: '设备功耗', kwh: data.device.kwh },
+      { key: 'transit', name: '周边功耗', kwh: data.transit.kwh }
+    ];
+    categories.forEach(function (item) {
+      var cap = item.key.charAt(0).toUpperCase() + item.key.slice(1);
+      setText('overview' + cap + 'Kwh', formatDeviceEnergy(item.kwh));
+      setText('overview' + cap + 'Pct', formatPercent(item.kwh, total));
+    });
+    var largest = categories.slice().sort(function (a, b) { return b.kwh - a.kwh; })[0];
+    var largestPct = total > 0 ? Math.round(largest.kwh / total * 100) : 0;
+    var insight = document.getElementById('overviewInsightText');
+    if (insight) {
+      insight.innerHTML = '今天<b>' + largest.name + '</b>是最大的能量开销，占总能耗的<b>' +
+        largestPct + '%</b>。';
+    }
+
+    updateExpandMeta();
+    applyItemCardLocks();
+    applyConfigLockState();
+    renderConfigLockToggle();
+    recordHistory(data);
+    renderGrade(data);
+    renderHistory(data);
+    renderTransitInsight(data);
+    updateHero(data);
+  }
+
+  function renderTransitInsight(data) {
+    var insightText = document.getElementById('transitInsightText');
+    if (!insightText) return;
+    var groups = [
+      { key: 'fixed', label: '固定项', kwh: data.transit.fixed.kwh },
+      { key: 'appliance', label: '电器', kwh: data.transit.appliancesKwh },
+      { key: 'trip', label: '出行', kwh: data.transit.tripsKwh }
+    ];
+    var largest = groups.slice().sort(function (a, b) { return b.kwh - a.kwh; })[0];
+    var share = data.transit.kwh > 0 ? Math.round(largest.kwh / data.transit.kwh * 100) : 0;
+    insightText.innerHTML = '周边共 <b>' + formatEnergy(data.transit.kwh) + ' kWh</b>：固定项 ' +
+      formatEnergy(data.transit.fixed.kwh) + '、电器 ' + formatEnergy(data.transit.appliancesKwh) +
+      '、出行 ' + formatEnergy(data.transit.tripsKwh) + '；<b>' + largest.label + '</b>占比最高（' + share + '%）。';
+  }
+
+  function showToast(message) {
+    if (!toast) return;
+    window.clearTimeout(toastTimer);
+    toast.textContent = message;
+    toast.classList.add('is-visible');
+    toastTimer = window.setTimeout(function () {
+      toast.classList.remove('is-visible');
+    }, 1900);
+  }
+
+  function setRangeState(input) {
+    var value = Number(input.value);
+    if (!isFinite(value)) return;
+    if (state.configLocked === true && (
+      input.hasAttribute('data-device-capacity') ||
+      input.hasAttribute('data-device-power') ||
+      input.hasAttribute('data-appliance-power')
+    )) {
+      return;
+    }
+    if (input === stepsInput) {
+      state.steps = value;
+    } else if (input === metInput) {
+      state.met = value;
+    } else if (input.getAttribute('data-device-capacity')) {
+      state.devices[input.getAttribute('data-device-capacity')].capacity = value;
+    } else if (input.getAttribute('data-device-cycles')) {
+      state.devices[input.getAttribute('data-device-cycles')].cycles = value;
+    } else if (input.getAttribute('data-device-power')) {
+      state.devices[input.getAttribute('data-device-power')].watts = value;
+    } else if (input.getAttribute('data-device-hours')) {
+      state.devices[input.getAttribute('data-device-hours')].hours = value;
+    } else if (input.getAttribute('data-appliance-power')) {
+      state.appliances[input.getAttribute('data-appliance-power')].watts = value;
+    } else if (input.getAttribute('data-appliance-hours')) {
+      state.appliances[input.getAttribute('data-appliance-hours')].hours = value;
+    } else if (input.getAttribute('data-trip')) {
+      state.trips[input.getAttribute('data-trip')] = value;
+    }
+    setRangeFill(input);
+    render();
+    saveState();
+  }
+
+  function updateTripNumber(input) {
+    var key = input.getAttribute('data-trip-number');
+    var def = Model.MODEL.transit[key];
+    if (!def) return;
+    var raw = input.value.trim();
+    var value = raw === '' ? 0 : Number(raw);
+    if (!isFinite(value)) value = 0;
+    state.trips[key] = clamp(value, def.min, def.max);
+    render();
+    saveState();
+  }
+
+  function handleInput(event) {
+    var input = event.target;
+    if (!input || !input.getAttribute) return;
+    if (input.getAttribute('data-trip-number')) {
+      updateTripNumber(input);
+      return;
+    }
+    if (input.type !== 'range') return;
+    setRangeState(input);
+  }
+
+  function handleChange(event) {
+    var input = event.target;
+    if (!input || !input.getAttribute || !input.getAttribute('data-trip-number')) return;
+    input.value = state.trips[input.getAttribute('data-trip-number')];
+    render();
+  }
+
+  function handleDocumentClick(event) {
+    var stepPreset = event.target.closest ? event.target.closest('[data-steps]') : null;
+    if (stepPreset) {
+      var stepValue = Number(stepPreset.getAttribute('data-steps'));
+      if (isFinite(stepValue)) {
+        stepsInput.value = stepValue;
+        stepsInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      return;
+    }
+
+    var metPreset = event.target.closest ? event.target.closest('[data-met]') : null;
+    if (metPreset) {
+      var metValue = Number(metPreset.getAttribute('data-met'));
+      if (isFinite(metValue)) {
+        metInput.value = metValue;
+        metInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      return;
+    }
+
+    var deviceToggle = event.target.closest ? event.target.closest('[data-toggle-device]') : null;
+    if (deviceToggle) {
+      cycleItemState('device', deviceToggle.getAttribute('data-toggle-device'));
+      return;
+    }
+
+    var applianceToggle = event.target.closest ? event.target.closest('[data-toggle-appliance]') : null;
+    if (applianceToggle) {
+      cycleItemState('appliance', applianceToggle.getAttribute('data-toggle-appliance'));
+      return;
+    }
+
+    var tripToggle = event.target.closest ? event.target.closest('[data-toggle-trip]') : null;
+    if (tripToggle) {
+      cycleItemState('trip', tripToggle.getAttribute('data-toggle-trip'));
+      return;
+    }
+
+    if (event.target.closest && event.target.closest('#deviceExpandButton')) {
+      toggleExpand(deviceExpandButton, deviceExtraList, '展开更多设备', '收起更多设备');
+      return;
+    }
+
+    if (event.target.closest && event.target.closest('#tripExpandButton')) {
+      toggleExpand(tripExpandButton, tripExtra, '展开更多出行', '收起更多出行');
+      return;
+    }
+
+    var profileBackdrop = event.target.closest ? event.target.closest('[data-close-profile]') : null;
+    if (profileBackdrop) {
+      closeProfile();
+      return;
+    }
+
+    var goTab = event.target.closest ? event.target.closest('[data-go-tab]') : null;
+    if (goTab) {
+      setTab(goTab.getAttribute('data-go-tab'), { resetScroll: true });
+      return;
+    }
+
+    var tab = event.target.closest ? event.target.closest('.tab') : null;
+    if (tab) {
+      setTab(tab.getAttribute('data-tab'), { resetScroll: true });
+      return;
+    }
+
+    var closeTrigger = event.target.closest ? event.target.closest('[data-close-modal]') : null;
+    if (closeTrigger) {
+      closeModal();
+    }
+  }
+
+  function handleTabKeydown(event) {
+    var key = event.key;
+    if (!event.target.classList.contains('tab')) return;
+    if (key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'Home' && key !== 'End') return;
+    event.preventDefault();
+    var index = TABS.indexOf(currentTab);
+    if (key === 'ArrowLeft') index = (index + TABS.length - 1) % TABS.length;
+    else if (key === 'ArrowRight') index = (index + 1) % TABS.length;
+    else if (key === 'Home') index = 0;
+    else if (key === 'End') index = TABS.length - 1;
+    var nextTab = TABS[index];
+    setTab(nextTab, { resetScroll: true });
+    var target = document.getElementById('tab-' + nextTab);
+    if (target) target.focus();
+  }
+
+  function fillProfileForm() {
+    profileAge.value = state.age;
+    profileHeight.value = state.height;
+    profileWeight.value = state.weight;
+  }
+
+  function openProfile(mode) {
+    if (isProfileOpen) return;
+    if (isModalOpen) closeModal();
+    profileMode = mode === 'onboarding' ? 'onboarding' : 'settings';
+    isProfileOpen = true;
+    window.clearTimeout(profileCloseTimer);
+    fillProfileForm();
+    var onboarding = profileMode === 'onboarding';
+    profileModal.classList.toggle('is-onboarding', onboarding);
+    profileKicker.textContent = onboarding ? 'BEFORE WE START' : 'PROFILE';
+    profileTitle.textContent = onboarding ? '先认识一下你' : '身体资料';
+    profileLead.textContent = onboarding
+      ? '身高、体重和年龄只录入一次，之后在「身体资料」里修改。基础代谢会按你的实际年龄计算。'
+      : '修改后会立刻重新计算基础代谢与今天的账本；资料只保存在本机。';
+    saveProfileButton.textContent = onboarding ? '保存并开始' : '保存修改';
+    closeProfileButton.hidden = onboarding;
+    profileSettingsExtra.hidden = onboarding;
+    renderConfigLockToggle();
+    lastFocused = document.activeElement;
+    profileModal.hidden = false;
+    if (!prefersReduced) void profileModal.offsetWidth;
+    profileModal.classList.add('is-open');
+    window.setTimeout(function () {
+      if (!isProfileOpen) return;
+      try { profileAge.focus({ preventScroll: true }); } catch (error) { profileAge.focus(); }
+    }, 80);
+  }
+
+  function hideProfileModal() {
+    isProfileOpen = false;
+    profileModal.classList.remove('is-open');
+    window.clearTimeout(profileCloseTimer);
+    profileCloseTimer = window.setTimeout(function () {
+      if (!isProfileOpen) profileModal.hidden = true;
+      if (lastFocused && lastFocused.focus) {
+        try { lastFocused.focus({ preventScroll: true }); } catch (error) { lastFocused.focus(); }
+      }
+    }, prefersReduced ? 0 : 240);
+  }
+
+  function closeProfile() {
+    if (profileMode === 'onboarding') return;
+    hideProfileModal();
+  }
+
+  function saveProfileFromForm() {
+    var nextAge = Math.round(clamp(Number(profileAge.value) || state.age, 16, 80));
+    var nextHeight = Math.round(clamp(Number(profileHeight.value) || state.height, 140, 210));
+    var nextWeight = Math.round(clamp(Number(profileWeight.value) || state.weight, 40, 120));
+    profileAge.value = nextAge;
+    profileHeight.value = nextHeight;
+    profileWeight.value = nextWeight;
+    profile = {
+      complete: true,
+      age: nextAge,
+      height: nextHeight,
+      weight: nextWeight
+    };
+    state.age = nextAge;
+    state.height = nextHeight;
+    state.weight = nextWeight;
+    saveProfile();
+    saveState();
+    render();
+    hideProfileModal();
+    showToast('身体资料已保存');
+  }
+
+  function openModal() {
+    if (isModalOpen || isProfileOpen) return;
+    isModalOpen = true;
+    window.clearTimeout(modalCloseTimer);
+    lastFocused = document.activeElement;
+    infoModal.hidden = false;
+    if (!prefersReduced) {
+      void infoModal.offsetWidth;
+    }
+    infoModal.classList.add('is-open');
+    window.setTimeout(function () {
+      if (!isModalOpen) return;
+      try { closeInfoButton.focus({ preventScroll: true }); } catch (error) { closeInfoButton.focus(); }
+    }, 80);
+  }
+
+  function closeModal() {
+    if (!isModalOpen && infoModal.hidden) return;
+    isModalOpen = false;
+    infoModal.classList.remove('is-open');
+    window.clearTimeout(modalCloseTimer);
+    modalCloseTimer = window.setTimeout(function () {
+      if (!isModalOpen) infoModal.hidden = true;
+      if (lastFocused && lastFocused.focus) {
+        try { lastFocused.focus({ preventScroll: true }); } catch (error) { lastFocused.focus(); }
+      }
+    }, prefersReduced ? 0 : 240);
+  }
+
+  function trapModalFocus(event) {
+    if ((!isModalOpen && !isProfileOpen) || event.key !== 'Tab') return;
+    var sheet = isProfileOpen ? profileSheet : infoSheet;
+    var focusables = Array.prototype.slice.call(
+      sheet.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+    ).filter(function (el) {
+      return !el.disabled && el.offsetParent !== null;
+    });
+    if (!focusables.length) return;
+    var first = focusables[0];
+    var last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function resetAll() {
+    var keepConfigLocked = state.configLocked === true;
+    state = Model.normalizeState(Model.DEFAULTS);
+    if (profile.complete) {
+      state.age = profile.age;
+      state.height = profile.height;
+      state.weight = profile.weight;
+    }
+    state.configLocked = keepConfigLocked;
+    state.day = localDateKey(new Date());
+    itemLocks = { device: {}, appliance: {}, trip: {} };
+    saveItemLocks();
+    currentTab = 'body';
+    applyBodyInputs();
+    applyDeviceInputs();
+    applyApplianceInputs();
+    applyTransitInputs();
+    render();
+    setTab('body', { resetScroll: true });
+    saveState();
+    closeModal();
+    showToast('已恢复示例值，身体资料保留');
+  }
+
+  function handleBack() {
+    if (isProfileOpen) {
+      if (profileMode === 'onboarding') return true;
+      closeProfile();
+      return true;
+    }
+    if (!infoModal.hidden) {
+      closeModal();
+      return true;
+    }
+    if (currentTab !== 'body') {
+      setTab('body', { resetScroll: true });
+      return true;
+    }
+    return false;
+  }
+
+  function bindEvents() {
+    document.addEventListener('input', handleInput);
+    document.addEventListener('change', handleChange);
+    document.addEventListener('click', handleDocumentClick);
+    infoButton.addEventListener('click', openModal);
+    closeInfoButton.addEventListener('click', closeModal);
+    settingsButton.addEventListener('click', function () { openProfile('settings'); });
+    editProfileButton.addEventListener('click', function () { openProfile('settings'); });
+    closeProfileButton.addEventListener('click', closeProfile);
+    saveProfileButton.addEventListener('click', saveProfileFromForm);
+    configLockToggle.addEventListener('click', toggleConfigLock);
+    resetButton.addEventListener('click', resetAll);
+    document.querySelectorAll('.tab').forEach(function (tab) {
+      tab.addEventListener('keydown', handleTabKeydown);
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        if (isProfileOpen) {
+          event.preventDefault();
+          if (profileMode !== 'onboarding') closeProfile();
+          return;
+        }
+        if (isModalOpen) {
+          event.preventDefault();
+          closeModal();
+          return;
+        }
+      }
+      trapModalFocus(event);
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') {
+        saveState();
+        saveHistory();
+        saveProfile();
+        saveItemLocks();
+      } else {
+        handleDayRollover();
+      }
+    });
+    window.addEventListener('pageshow', handleDayRollover);
+    window.addEventListener('focus', handleDayRollover);
+    window.setInterval(handleDayRollover, 60000);
+    window.addEventListener('beforeunload', function () {
+      saveState();
+      saveProfile();
+      saveItemLocks();
+    });
+  }
+
+  function initialTab() {
+    var hash = (window.location.hash || '').replace('#', '');
+    if (TABS.indexOf(hash) >= 0) return hash;
+    return state.tab;
+  }
+
+  function init() {
+    var rolledOverOnLoad = rolloverDayIfNeeded();
+    formatDate();
+    buildDeviceList();
+    buildApplianceList();
+    buildTransitList();
+    applyBodyInputs();
+    applyDeviceInputs();
+    applyApplianceInputs();
+    applyTransitInputs();
+    render();
+    setTab(initialTab(), { resetScroll: true });
+    bindEvents();
+    applyItemCardLocks();
+    applyConfigLockState();
+    renderConfigLockToggle();
+    if (!profile.complete) {
+      window.setTimeout(function () { openProfile('onboarding'); }, 120);
+    }
+    if (rolledOverOnLoad) {
+      window.setTimeout(function () {
+        showToast('新的一天：昨日用量已归档，今日可调用量已归零');
+      }, 650);
+    }
+    window.requestAnimationFrame(function () {
+      window.setTimeout(function () {
+        root.classList.add('is-ready');
+      }, prefersReduced ? 0 : 40);
+    });
+    window.setTimeout(function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.range'), setRangeFill);
+    }, 80);
+  }
+
+  window.PowerApp = {
+    handleBack: handleBack,
+    getState: function () { return Model.clone(state); },
+    getHistory: function () { return Model.clone(history); },
+    setTab: setTab
+  };
+
+  init();
+}());
+
+  </script>
+</body>
+</html>

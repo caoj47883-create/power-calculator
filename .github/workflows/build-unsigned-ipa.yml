@@ -1,0 +1,62 @@
+name: Build unsigned iOS IPA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build iPhone app without signing
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project PowerLedger.xcodeproj \
+            -scheme PowerLedger \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            build
+
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find build/DerivedData/Build/Products/Release-iphoneos -maxdepth 1 -type d -name '*.app' -print -quit)"
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app found. Build products:"
+            find build/DerivedData/Build/Products -maxdepth 3 -type d -print || true
+            exit 1
+          fi
+          mkdir -p build/Payload
+          cp -R "$APP_PATH" build/Payload/PowerLedger.app
+          (cd build && zip -qry PowerLedger-unsigned.ipa Payload)
+          shasum -a 256 build/PowerLedger-unsigned.ipa | tee build/PowerLedger-unsigned.ipa.sha256
+          echo "IPA size: $(stat -f %z build/PowerLedger-unsigned.ipa) bytes"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PowerLedger-unsigned-ipa
+          path: |
+            ios/build/PowerLedger-unsigned.ipa
+            ios/build/PowerLedger-unsigned.ipa.sha256
+          if-no-files-found: error
+          retention-days: 14

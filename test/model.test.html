@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>model tests</title>
+</head>
+<body>
+  <pre id="output">running…</pre>
+  <script src="../app/assets/model.js"></script>
+  <script>
+    (function () {
+      var results = [];
+      var failures = 0;
+
+      function near(actual, expected, tolerance, label) {
+        if (Math.abs(actual - expected) <= tolerance) {
+          results.push('PASS ' + label);
+        } else {
+          failures += 1;
+          results.push('FAIL ' + label + ' — expected ' + expected + ', got ' + actual);
+        }
+      }
+
+      function equal(actual, expected, label) {
+        if (actual === expected) {
+          results.push('PASS ' + label);
+        } else {
+          failures += 1;
+          results.push('FAIL ' + label + ' — expected ' + expected + ', got ' + actual);
+        }
+      }
+
+      var M = window.PowerModel;
+      var defaults = M.calc(M.DEFAULTS);
+
+      equal(M.DEFAULTS.age, 30, 'default age');
+      near(defaults.body.bmrKcal, 1514.5, 0.0001, 'default BMR kcal');
+      near(defaults.body.restPowerW, 73.3411, 0.001, 'default resting power');
+      near(defaults.body.activePowerW, 308.0325, 0.001, 'default active power');
+      near(defaults.body.activityKwh, 0.3129219, 0.00001, 'default step activity energy');
+      near(defaults.body.kwh, 2.0731074, 0.00001, 'default body energy');
+      near(defaults.body.kcal, 1783.75, 0.1, 'default body kcal');
+      near(defaults.body.distanceKm, 5.6168, 0.00001, 'default walking distance');
+      near(defaults.body.walkMinutes, 80, 0.00001, 'default walking minutes');
+      near(defaults.body.bmi, 23.5294, 0.0001, 'default BMI');
+      equal(defaults.body.bmiLabel, '正常', 'default BMI label');
+
+      equal(defaults.device.items.length, 10, 'device item count');
+      equal(defaults.device.items.filter(function (item) { return item.enabled; }).length, 4, 'enabled device count');
+      near(defaults.device.items[0].kwh, 0.0217647, 0.0000001, 'default phone energy');
+      near(defaults.device.items[1].kwh, 0.0261176, 0.0000001, 'default tablet energy');
+      near(defaults.device.items[2].kwh, 0, 0.0000001, 'laptop is unchecked by default');
+      near(defaults.device.items[4].kwh, 0.0021765, 0.0000001, 'default earbuds energy');
+      near(defaults.device.items[9].kwh, 0.6, 0.0000001, 'default desktop energy');
+      near(defaults.device.kwh, 0.6500588, 0.0000001, 'default device energy');
+
+      var enabledDevices = M.normalizeState(M.DEFAULTS);
+      ['laptop', 'powerbank', 'headphones', 'actioncam', 'camera', 'instax'].forEach(function (key) {
+        enabledDevices.devices[key].enabled = true;
+      });
+      var allDevices = M.calc(enabledDevices);
+      near(allDevices.device.items[2].kwh, 0.0705882, 0.0000001, 'enabled laptop Wh energy');
+      near(allDevices.device.items[3].kwh, 0.0217647, 0.0000001, 'enabled power bank energy');
+      near(allDevices.device.items[5].kwh, 0.0026118, 0.0000001, 'enabled headphones energy');
+      near(allDevices.device.items[7].kwh, 0.0026118, 0.0000001, 'enabled camera energy');
+      near(allDevices.device.items[8].kwh, 0.0013059, 0.0000001, 'enabled instax energy');
+      near(allDevices.device.kwh, 0.7528588, 0.0000001, 'all devices energy');
+
+      equal(defaults.appliance.items[0].enabled, true, 'fridge enabled by default');
+      equal(defaults.appliance.items[1].enabled, false, 'AC unchecked by default');
+      near(defaults.appliance.items[0].kwh, 1.92, 0.0000001, 'default fridge energy');
+      near(defaults.appliance.kwh, 1.92, 0.0000001, 'default appliance energy');
+      var acState = M.normalizeState(M.DEFAULTS);
+      acState.appliances.ac.enabled = true;
+      acState.appliances.ac.hours = 2;
+      near(M.calc(acState).appliance.kwh, 4.32, 0.00001, 'enabled AC adds energy');
+
+      near(defaults.transit.fixed.kwh, 0.692, 0.00001, 'fixed surrounding total');
+      near(defaults.transit.tripsKwh, 1.23, 0.00001, 'default trips energy');
+      near(defaults.transit.kwh, 3.842, 0.00001, 'default surrounding energy');
+      equal(defaults.transit.items.length, 11, 'transit item count');
+      equal(defaults.transit.items[0].enabled, true, 'subway enabled by default');
+      equal(defaults.transit.items[1].enabled, true, 'e-bike enabled by default');
+      equal(defaults.transit.items[2].enabled, false, 'electric taxi unchecked by default');
+      equal(defaults.transit.items[10].enabled, false, 'plane unchecked by default');
+      near(defaults.transit.items[0].kwh, 1.05, 0.00001, 'default subway energy');
+      near(defaults.transit.items[1].kwh, 0.18, 0.00001, 'default e-bike energy');
+
+      near(defaults.totalKwh, 6.5651663, 0.00001, 'default total energy');
+      near(defaults.averageW, 273.5486, 0.001, 'default average power');
+      equal(defaults.grade, undefined, 'calc itself does not grade');
+      var grade = M.evaluateGrade(defaults.transit.kwh);
+      equal(grade.level, 1, 'default surrounding grade level');
+      equal(grade.label, '省电模式', 'default surrounding grade label');
+      equal(grade.text, '点几块炭够你活一天，牛逼', 'default surrounding grade user copy');
+
+      var taxiState = M.normalizeState(M.DEFAULTS);
+      taxiState.tripEnabled.taxiEv = true;
+      taxiState.tripEnabled.taxi = true;
+      taxiState.trips.taxiEv = 20;
+      taxiState.trips.taxi = 20;
+      var taxis = M.calc(taxiState);
+      near(taxis.transit.items[2].kwh, 3, 0.00001, '20 km electric taxi energy');
+      near(taxis.transit.items[3].kwh, 11, 0.00001, '20 km oil taxi energy');
+      near(taxis.transit.items[3].liters, 11 / 9.1, 0.00001, 'oil taxi petrol');
+      near(taxis.transit.tripsKwh, 15.23, 0.00001, 'taxi trips total');
+      near(taxis.transit.kwh, 17.842, 0.00001, 'taxi surrounding total');
+
+      var newModes = M.normalizeState(M.DEFAULTS);
+      ['cityBus', 'evCar', 'iceCar', 'coach', 'train', 'hsr', 'plane'].forEach(function (key) {
+        newModes.tripEnabled[key] = true;
+      });
+      newModes.trips.cityBus = 50;
+      newModes.trips.evCar = 10;
+      newModes.trips.iceCar = 10;
+      newModes.trips.coach = 100;
+      newModes.trips.train = 100;
+      newModes.trips.hsr = 100;
+      newModes.trips.plane = 1000;
+      var modes = M.calc(newModes);
+      near(modes.transit.items[4].kwh, 1.75, 0.00001, 'city bus 50 km energy');
+      near(modes.transit.items[5].kwh, 1.5, 0.00001, 'EV 10 km energy');
+      near(modes.transit.items[6].kwh, 6, 0.00001, 'ICE car 10 km energy');
+      near(modes.transit.items[7].kwh, 5, 0.00001, 'coach 100 km per-person energy');
+      near(modes.transit.items[8].kwh, 4.5, 0.00001, 'train 100 km per-person energy');
+      near(modes.transit.items[9].kwh, 6.5, 0.00001, 'HSR 100 km per-person energy');
+      near(modes.transit.items[10].kwh, 300, 0.00001, 'plane 1000 km per-person energy');
+      equal(modes.transit.items[7].form, 'input', 'coach form is input');
+
+      var ageState = M.normalizeState(M.DEFAULTS);
+      ageState.age = 40;
+      near(M.calc(ageState).body.bmrKcal, 1464.5, 0.0001, 'age 40 BMR');
+      ageState.age = 50;
+      near(M.calc(ageState).body.bmrKcal, 1414.5, 0.0001, 'age 50 BMR');
+
+      var zeroStepsState = M.normalizeState(M.DEFAULTS);
+      zeroStepsState.steps = 0;
+      var zeroSteps = M.calc(zeroStepsState);
+      near(zeroSteps.body.activityKwh, 0, 0.00001, 'zero steps adds no activity energy');
+      near(zeroSteps.body.kwh, 73.3410648 * 24 / 1000, 0.00001, 'zero steps uses resting energy all day');
+      near(zeroSteps.body.distanceKm, 0, 0.00001, 'zero steps means no walking distance');
+
+      var restMetState = M.normalizeState(M.DEFAULTS);
+      restMetState.met = 1;
+      near(M.calc(restMetState).body.activityKwh, 0, 0.00001, 'MET 1 adds no activity energy');
+
+      var stepState = M.normalizeState(M.DEFAULTS);
+      stepState.steps = 8123;
+      near(M.normalizeState(stepState).steps, 8100, 0.00001, 'steps round to 50');
+      stepState.steps = 99999;
+      near(M.normalizeState(stepState).steps, 30000, 0.00001, 'steps clamp high');
+
+      var tallerState = M.normalizeState(M.DEFAULTS);
+      tallerState.height = 190;
+      var taller = M.calc(tallerState);
+      near(taller.body.bmrKcal, 1639.5, 0.0001, 'taller body BMR at 30');
+      near(taller.body.distanceKm, 6.2776, 0.00001, 'taller body step distance');
+
+      var heavyState = M.normalizeState(M.DEFAULTS);
+      heavyState.weight = 90;
+      near(M.calc(heavyState).body.bmrKcal, 1734.5, 0.0001, 'heavier body BMR at 30');
+
+      var totalEquivalents = M.equivalentsFor(defaults.totalKwh);
+      near(totalEquivalents.coalKg, 0.806465, 0.00001, 'total coal equivalent');
+      near(totalEquivalents.teslaKm, 31.5128, 0.001, 'total Tesla Model X range');
+      near(M.equivalentsFor(0).teslaKm, 0, 0.0000001, 'zero Tesla range');
+
+      equal(M.evaluateGrade(0).label, '省电模式', 'zero is power-saving mode');
+      equal(M.evaluateGrade(5).level, 1, 'grade boundary 5');
+      equal(M.evaluateGrade(5.001).level, 2, 'grade just above 5');
+      equal(M.evaluateGrade(15).label, '节能模式', 'grade boundary 15');
+      equal(M.evaluateGrade(15).text, '控制全球变暖有你一份功劳', 'second grade copy');
+      equal(M.evaluateGrade(15.001).level, 3, 'grade just above 15');
+      equal(M.evaluateGrade(25).label, '均衡模式', 'grade boundary 25');
+      equal(M.evaluateGrade(25.001).level, 4, 'grade just above 25');
+      equal(M.evaluateGrade(40).label, '性能模式', 'grade boundary 40');
+      equal(M.evaluateGrade(40.001).label, '高耗能模式', 'grade above 40');
+      equal(M.evaluateGrade(40.001).text, '你知道你带得动几张GPU吗...不告诉你！', 'fifth grade copy');
+
+      var dirty = M.normalizeState({
+        age: 999,
+        height: 999,
+        weight: 10,
+        steps: 99999,
+        met: -3,
+        devices: {
+          phone: { capacity: 20000, cycles: 99, enabled: false },
+          earbuds: { capacity: 50, cycles: 0.3 },
+          laptop: { capacity: 999, cycles: -1 },
+          desktop: { watts: 9999, hours: 99, enabled: true }
+        },
+        appliances: {
+          ac: { watts: 9999, hours: 99, enabled: true },
+          fridge: { watts: 1, hours: -1, enabled: false }
+        },
+        trips: { subway: -10, ebike: 500, taxiEv: 999, taxi: 999, cityBus: 999, plane: 999999 },
+        tripEnabled: { plane: true },
+        tab: 'hacked'
+      });
+      equal(dirty.age, 80, 'age clamp high');
+      equal(dirty.height, 210, 'height clamp high');
+      equal(dirty.weight, 40, 'weight clamp low');
+      equal(dirty.steps, 30000, 'steps clamp high');
+      equal(dirty.met, 1, 'MET clamp low');
+      equal(M.normalizeState({ met: 99 }).met, 12, 'MET clamp high');
+      equal(dirty.devices.phone.capacity, 10000, 'phone capacity clamp high');
+      equal(dirty.devices.phone.enabled, false, 'explicit device off preserved');
+      equal(dirty.devices.earbuds.capacity, 200, 'earbud capacity clamp low');
+      equal(dirty.devices.earbuds.enabled, true, 'legacy active earbuds migrate on');
+      equal(dirty.devices.laptop.capacity, 120, 'laptop capacity clamp high');
+      equal(dirty.devices.desktop.watts, 1000, 'desktop power clamp high');
+      equal(dirty.devices.desktop.hours, 24, 'desktop hours clamp high');
+      equal(dirty.devices.desktop.enabled, true, 'desktop explicit on preserved');
+      equal(dirty.appliances.ac.watts, 3500, 'appliance power clamp high');
+      equal(dirty.appliances.ac.hours, 24, 'appliance hours clamp high');
+      equal(dirty.appliances.fridge.watts, 50, 'appliance power clamp low');
+      equal(dirty.appliances.fridge.hours, 0, 'appliance hours clamp low');
+      equal(dirty.appliances.fridge.enabled, false, 'fridge explicit off preserved');
+      equal(dirty.trips.subway, 0, 'trip clamp low');
+      equal(dirty.trips.ebike, 120, 'trip clamp high');
+      equal(dirty.trips.taxiEv, 80, 'electric taxi clamp high');
+      equal(dirty.trips.plane, 10000, 'plane clamp high');
+      equal(dirty.tripEnabled.plane, true, 'explicit trip on preserved');
+      equal(dirty.trips.cityBus, 200, 'bus clamp high');
+      equal(dirty.tab, 'body', 'invalid tab falls back');
+      equal(M.normalizeState(null).age, 30, 'null age falls back');
+      equal(M.normalizeState(null).height, 170, 'null height falls back');
+      equal(M.normalizeState(null).devices.phone.capacity, 5000, 'null phone state falls back');
+      equal(M.normalizeState(null).devices.laptop.enabled, false, 'null laptop unchecked');
+      equal(M.normalizeState(null).tripEnabled.plane, false, 'null plane unchecked');
+      equal(M.normalizeState({ day: '2026-11-06' }).day, '2026-11-06', 'day key preserved');
+      equal(M.normalizeState({ day: 'yesterday' }).day, '', 'invalid day key falls back');
+      equal(M.normalizeState(null).day, '', 'missing day key is empty');
+      equal(M.normalizeState({ configLocked: true }).configLocked, true, 'config lock preserved');
+      equal(M.normalizeState({ configLocked: 'yes' }).configLocked, false, 'invalid config lock falls back');
+      equal(M.normalizeState(null).configLocked, false, 'config lock defaults off');
+
+      var subwayShare = M.calc(M.DEFAULTS).transit.items[0];
+      near(subwayShare.distanceKm, 17.5, 0.00001, '30 min subway distance');
+      near(subwayShare.kwh, 1.05, 0.00001, '30 min subway energy');
+
+      document.getElementById('output').textContent = results.join('\n') +
+        '\n\n' + (failures ? 'RESULT FAIL (' + failures + ')' : 'RESULT PASS');
+      document.title = failures ? 'FAIL' : 'PASS';
+    }());
+  </script>
+</body>
+</html>
