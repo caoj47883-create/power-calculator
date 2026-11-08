@@ -41,7 +41,7 @@ xcodebuild \
 
 - App 名称：功耗计算器
 - Bundle ID：`com.powercalc.ledger`
-- 版本：2.2.0（Build 14）
+- 版本：2.3.0（Build 15）
 - 最低系统：iOS 15.0
 - 设备：iPhone 竖屏
 - 依赖：无（纯系统 SwiftUI / WebKit）

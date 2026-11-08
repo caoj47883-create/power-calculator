@@ -12,7 +12,7 @@
 
 ## 一、准备 GitHub Actions 构建
 
-1. 在 Windows 上解压 `功耗计算器-iOS-v2.2.0-Xcode.zip`（包含 `WINDOWS-SIDELOAD.md` 和 `.github/workflows`）。
+1. 在 Windows 上解压 `功耗计算器-iOS-v2.3.0-Xcode.zip`（包含 `WINDOWS-SIDELOAD.md` 和 `.github/workflows`）。
 2. 注册/登录 GitHub（免费），新建一个仓库。
 3. 把解压后的全部文件上传到这个仓库，包括隐藏目录 `.github/workflows/build-unsigned-ipa.yml`。
    - 推荐用 GitHub Desktop：`File → Add local repository`，选择解压目录，然后 `Publish repository`。

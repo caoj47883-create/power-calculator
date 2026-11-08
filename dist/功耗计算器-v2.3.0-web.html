@@ -894,6 +894,23 @@ input[type="range"].range::-moz-range-thumb {
   letter-spacing: 0.1em;
 }
 
+.sex-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(var(--body-rgb), 0.12);
+  color: var(--body);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  vertical-align: 1px;
+}
+
 .profile-summary-copy h3 {
   margin: 6px 0 4px;
   color: var(--ink);
@@ -2296,6 +2313,51 @@ input[type="range"].range::-moz-range-thumb {
   min-width: 0;
 }
 
+.profile-field.sex-field {
+  align-items: center;
+}
+
+.sex-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+}
+
+.sex-option {
+  min-width: 48px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sex-option:active {
+  transform: scale(0.94);
+}
+
+.sex-option.is-active {
+  background: var(--ink);
+  color: #fffdf8;
+  box-shadow: 0 3px 10px rgba(32, 28, 23, 0.16);
+}
+
+.sex-option:focus-visible {
+  outline: 2px solid rgba(var(--blue-rgb), 0.68);
+  outline-offset: 2px;
+}
+
 .profile-field-label b {
   color: var(--ink);
   font-size: 14px;
@@ -3130,9 +3192,9 @@ input:focus-visible,
         <article class="card profile-summary-card">
           <div class="profile-summary-head">
             <div class="profile-summary-copy">
-              <span class="kicker">身体资料</span>
+              <span class="kicker">身体资料 <b class="sex-chip" id="profileSexChip">男</b></span>
               <h3 id="profileSummary">30 岁 · 170 cm · 68 kg</h3>
-              <p>基础代谢按实际年龄计算 · BMI <b id="bmiOut">23.5</b> · <span id="bmiText">正常</span></p>
+              <p>基础代谢按实际年龄和性别计算 · BMI <b id="bmiOut">23.5</b> · <span id="bmiText">正常</span></p>
             </div>
             <button class="ghost-button" id="editProfileButton" type="button">修改</button>
           </div>
@@ -3388,8 +3450,15 @@ input:focus-visible,
         </button>
       </div>
       <div class="sheet-scroll">
-        <p class="sheet-lead" id="profileLead">身高、体重和年龄只录入一次，之后在「身体资料」里修改。基础代谢会按你的实际年龄计算。</p>
+        <p class="sheet-lead" id="profileLead">性别、年龄、身高和体重只录入一次，之后在「身体资料」里修改。基础代谢会按实际年龄和生理性别计算。</p>
         <div class="profile-form">
+          <div class="profile-field sex-field">
+            <span class="profile-field-label"><b>生理性别</b><small>用于男女基础代谢公式</small></span>
+            <div class="sex-toggle" role="radiogroup" aria-label="生理性别">
+              <button class="sex-option is-active" type="button" data-sex="male" role="radio" aria-checked="true" tabindex="0">男</button>
+              <button class="sex-option" type="button" data-sex="female" role="radio" aria-checked="false" tabindex="-1">女</button>
+            </div>
+          </div>
           <label class="profile-field">
             <span class="profile-field-label"><b>年龄</b><small>实际年龄，用于基础代谢</small></span>
             <span class="profile-input"><input id="profileAge" type="number" inputmode="numeric" min="16" max="80" step="1" value="30" aria-label="年龄"><em>岁</em></span>
@@ -3440,13 +3509,13 @@ input:focus-visible,
         </button>
       </div>
       <div class="sheet-scroll">
-        <p class="sheet-lead">这个应用把一天里的三层能量放进同一个账本：身体代谢、设备充电与主机用电，以及 WiFi、基站、云服务器、家用电器和出行等周边开销。第一次打开会先录入年龄、身高和体重，之后在「身体资料」里修改；设备、电器和出行子项勾选后才计入。顶部背景仍会在浅色纸面里轻微变化。</p>
+        <p class="sheet-lead">这个应用把一天里的三层能量放进同一个账本：身体代谢、设备充电与主机用电，以及 WiFi、基站、云服务器、家用电器和出行等周边开销。第一次打开会先录入生理性别、年龄、身高和体重，之后在「身体资料」里修改；设备、电器和出行子项勾选后才计入。顶部背景仍会在浅色纸面里轻微变化。</p>
 
         <div class="formula-grid">
           <div class="formula-card">
             <span class="formula-index">01</span>
             <h3>自体</h3>
-            <p>基础代谢依据实际年龄、身高和体重估算，性别取男女平均常数。步数按 100 步/分钟折算活动时长，活动时功率 = 静息功率 × MET，强度可按 0.05 MET 微调。</p>
+            <p>基础代谢依据实际年龄、身高、体重和生理性别估算：男性常数 +5，女性常数 −161。步数按 100 步/分钟折算活动时长，活动时功率 = 静息功率 × MET，强度可按 0.05 MET 微调。</p>
           </div>
           <div class="formula-card">
             <span class="formula-index">02</span>
@@ -3462,8 +3531,8 @@ input:focus-visible,
 
         <h3 class="section-title">估算口径</h3>
         <dl class="assumptions">
-          <div><dt>基础代谢</dt><dd>10×体重 + 6.25×身高 − 5×年龄 − 78 kcal/天；性别取男女平均常数</dd></div>
-          <div><dt>身体资料</dt><dd>首次录入年龄、身高、体重；之后从顶部齿轮或「修改」进入设置</dd></div>
+          <div><dt>基础代谢</dt><dd>10×体重 + 6.25×身高 − 5×年龄 + 5（男）/ −161（女） kcal/天</dd></div>
+          <div><dt>身体资料</dt><dd>首次录入生理性别、年龄、身高、体重；之后从顶部齿轮或「修改」进入设置</dd></div>
           <div><dt>计入规则</dt><dd>设备、电器、出行子项勾选后才计入；右上角圆圈按「勾选 → 固定 → 取消勾选」循环</dd></div>
           <div><dt>固定调节</dt><dd>每个子卡片右上角点第二次即固定该卡片，卡片内滑条和输入框会冻结；再点一次取消勾选，不会误触其他项</dd></div>
           <div><dt>步数</dt><dd>100 步/分钟；步长 ≈ 0.413 × 身高</dd></div>
@@ -3509,7 +3578,7 @@ input:focus-visible,
           </button>
           <button class="btn btn-primary" type="button" data-close-modal>完成</button>
         </div>
-        <p class="version">功耗计算器 · v2.2.0 · 离线版</p>
+        <p class="version">功耗计算器 · v2.3.0 · 离线版</p>
       </div>
     </section>
   </div>
@@ -3702,9 +3771,11 @@ input:focus-visible,
       kcalPerKwh: 860.421,
       // 1 kcal/day = 4184 J / 86400 s ≈ 0.0484259 W
       kcalPerDayToWatt: 4184 / 86400,
-      // Mifflin-St Jeor 男女平均，按实际年龄：
-      // 10W + 6.25H - 5A - 78 kcal/day（男女常数 +5 / -161 的平均）
-      bmrSexAverageConstant: -78,
+      // Mifflin-St Jeor，按实际年龄和生理性别：
+      // 男：10W + 6.25H - 5A + 5 kcal/day
+      // 女：10W + 6.25H - 5A - 161 kcal/day
+      bmrMaleConstant: 5,
+      bmrFemaleConstant: -161,
       bmrAgeCoefficient: 5,
       strideHeightFactor: 0.00413,
       stepsPerMinute: 100
@@ -3903,6 +3974,7 @@ input:focus-visible,
   var DEFAULTS = {
     day: '',
     configLocked: false,
+    sex: 'male',
     age: 30,
     height: 170,
     weight: 68,
@@ -3959,6 +4031,7 @@ input:focus-visible,
     var state = {
       day: /^\d{4}-\d{2}-\d{2}$/.test(String(source.day || '')) ? String(source.day) : defaults.day,
       configLocked: source.configLocked === true,
+      sex: source.sex === 'female' ? 'female' : (source.sex === 'male' ? 'male' : defaults.sex),
       age: Math.round(clamp(numberOr(source.age, defaults.age), 16, 80)),
       height: Math.round(clamp(numberOr(source.height, defaults.height), 140, 210)),
       weight: Math.round(clamp(numberOr(source.weight, defaults.weight), 40, 120)),
@@ -4115,9 +4188,12 @@ input:focus-visible,
   function calc(rawState) {
     var state = normalizeState(rawState);
 
-    // 自体：年龄、身高、体重决定基础代谢，步数决定活动时长，MET 决定活动强度。
+    // 自体：性别、年龄、身高、体重决定基础代谢，步数决定活动时长，MET 决定活动强度。
+    var sexConstant = state.sex === 'female'
+      ? MODEL.body.bmrFemaleConstant
+      : MODEL.body.bmrMaleConstant;
     var bmrKcal = 10 * state.weight + 6.25 * state.height -
-      MODEL.body.bmrAgeCoefficient * state.age + MODEL.body.bmrSexAverageConstant;
+      MODEL.body.bmrAgeCoefficient * state.age + sexConstant;
     var restPowerW = bmrKcal * MODEL.body.kcalPerDayToWatt;
     var activePowerW = restPowerW * state.met;
     var walkMinutes = state.steps / MODEL.body.stepsPerMinute;
@@ -4306,6 +4382,7 @@ input:focus-visible,
   var ITEM_LOCKS_KEY = 'powercalc.itemLocks.v1';
   var HISTORY_LIMIT = 730;
   var TABS = ['body', 'device', 'transit', 'overview'];
+  var SEX_LABELS = { male: '男', female: '女' };
   var CORE_DEVICE_KEYS = ['phone', 'earbuds', 'tablet', 'desktop'];
   var EXTRA_DEVICE_KEYS = ['laptop', 'powerbank', 'headphones', 'actioncam', 'camera', 'instax'];
   var CORE_TRIP_KEYS = ['subway', 'ebike'];
@@ -4327,6 +4404,7 @@ input:focus-visible,
   var state = loadState();
   var profile = loadProfile();
   if (profile.complete) {
+    state.sex = profile.sex;
     state.age = profile.age;
     state.height = profile.height;
     state.weight = profile.weight;
@@ -4358,6 +4436,8 @@ input:focus-visible,
   var profileAge = document.getElementById('profileAge');
   var profileHeight = document.getElementById('profileHeight');
   var profileWeight = document.getElementById('profileWeight');
+  var sexButtons = Array.prototype.slice.call(document.querySelectorAll('[data-sex]'));
+  var selectedSex = state.sex === 'female' ? 'female' : 'male';
   var closeProfileButton = document.getElementById('closeProfileButton');
   var saveProfileButton = document.getElementById('saveProfileButton');
   var profileSettingsExtra = document.getElementById('profileSettingsExtra');
@@ -4405,19 +4485,20 @@ input:focus-visible,
   function loadProfile() {
     try {
       var raw = window.localStorage.getItem(PROFILE_KEY);
-      if (!raw) return { complete: false, age: 30, height: 170, weight: 68 };
+      if (!raw) return { complete: false, sex: 'male', age: 30, height: 170, weight: 68 };
       var parsed = JSON.parse(raw);
       if (!parsed || parsed.complete !== true) {
-        return { complete: false, age: 30, height: 170, weight: 68 };
+        return { complete: false, sex: 'male', age: 30, height: 170, weight: 68 };
       }
       return {
         complete: true,
+        sex: parsed.sex === 'female' ? 'female' : 'male',
         age: Math.round(Math.min(80, Math.max(16, Number(parsed.age) || 30))),
         height: Math.round(Math.min(210, Math.max(140, Number(parsed.height) || 170))),
         weight: Math.round(Math.min(120, Math.max(40, Number(parsed.weight) || 68)))
       };
     } catch (error) {
-      return { complete: false, age: 30, height: 170, weight: 68 };
+      return { complete: false, sex: 'male', age: 30, height: 170, weight: 68 };
     }
   }
 
@@ -5275,6 +5356,7 @@ input:focus-visible,
     setText('restPower', Math.round(data.body.restPowerW));
     setText('activePower', Math.round(data.body.activePowerW));
     setText('activeState', data.body.label + '时 · ' + state.met.toFixed(2) + ' MET');
+    setText('profileSexChip', SEX_LABELS[state.sex]);
     setText('profileSummary', state.age + ' 岁 · ' + state.height + ' cm · ' + state.weight + ' kg');
     setText('bmiOut', data.body.bmi.toFixed(1));
     setText('bmiText', data.body.bmiLabel);
@@ -5579,6 +5661,12 @@ input:focus-visible,
   }
 
   function handleDocumentClick(event) {
+    var sexButton = event.target.closest ? event.target.closest('[data-sex]') : null;
+    if (sexButton) {
+      setSexSelection(sexButton.getAttribute('data-sex'));
+      return;
+    }
+
     var stepPreset = event.target.closest ? event.target.closest('[data-steps]') : null;
     if (stepPreset) {
       var stepValue = Number(stepPreset.getAttribute('data-steps'));
@@ -5653,6 +5741,14 @@ input:focus-visible,
 
   function handleTabKeydown(event) {
     var key = event.key;
+    if (event.target.matches && event.target.matches('[data-sex]') && (key === 'ArrowLeft' || key === 'ArrowRight')) {
+      event.preventDefault();
+      var nextSex = selectedSex === 'male' ? 'female' : 'male';
+      setSexSelection(nextSex);
+      var nextButton = document.querySelector('[data-sex="' + nextSex + '"]');
+      if (nextButton) nextButton.focus();
+      return;
+    }
     if (!event.target.classList.contains('tab')) return;
     if (key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'Home' && key !== 'End') return;
     event.preventDefault();
@@ -5667,7 +5763,18 @@ input:focus-visible,
     if (target) target.focus();
   }
 
+  function setSexSelection(sex) {
+    selectedSex = sex === 'female' ? 'female' : 'male';
+    sexButtons.forEach(function (button) {
+      var active = button.getAttribute('data-sex') === selectedSex;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-checked', active ? 'true' : 'false');
+      button.setAttribute('tabindex', active ? '0' : '-1');
+    });
+  }
+
   function fillProfileForm() {
+    setSexSelection(state.sex);
     profileAge.value = state.age;
     profileHeight.value = state.height;
     profileWeight.value = state.weight;
@@ -5685,7 +5792,7 @@ input:focus-visible,
     profileKicker.textContent = onboarding ? 'BEFORE WE START' : 'PROFILE';
     profileTitle.textContent = onboarding ? '先认识一下你' : '身体资料';
     profileLead.textContent = onboarding
-      ? '身高、体重和年龄只录入一次，之后在「身体资料」里修改。基础代谢会按你的实际年龄计算。'
+      ? '性别、年龄、身高和体重只录入一次，之后在「身体资料」里修改。基础代谢会按实际年龄和生理性别计算。'
       : '修改后会立刻重新计算基础代谢与今天的账本；资料只保存在本机。';
     saveProfileButton.textContent = onboarding ? '保存并开始' : '保存修改';
     closeProfileButton.hidden = onboarding;
@@ -5722,15 +5829,18 @@ input:focus-visible,
     var nextAge = Math.round(clamp(Number(profileAge.value) || state.age, 16, 80));
     var nextHeight = Math.round(clamp(Number(profileHeight.value) || state.height, 140, 210));
     var nextWeight = Math.round(clamp(Number(profileWeight.value) || state.weight, 40, 120));
+    var nextSex = selectedSex === 'female' ? 'female' : 'male';
     profileAge.value = nextAge;
     profileHeight.value = nextHeight;
     profileWeight.value = nextWeight;
     profile = {
       complete: true,
+      sex: nextSex,
       age: nextAge,
       height: nextHeight,
       weight: nextWeight
     };
+    state.sex = nextSex;
     state.age = nextAge;
     state.height = nextHeight;
     state.weight = nextWeight;
@@ -5907,6 +6017,9 @@ input:focus-visible,
     resetButton.addEventListener('click', resetAll);
     document.querySelectorAll('.tab').forEach(function (tab) {
       tab.addEventListener('keydown', handleTabKeydown);
+    });
+    sexButtons.forEach(function (button) {
+      button.addEventListener('keydown', handleTabKeydown);
     });
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Enter' && event.target && event.target.matches && event.target.matches('[data-fixed-number]')) {

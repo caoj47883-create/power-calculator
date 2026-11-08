@@ -19,7 +19,7 @@ $passwordFile = Join-Path $keystoreDir 'keystore.password'
 $keyAlias = 'powercalc'
 $storePass = $null
 $keyPass = $null
-$finalName = 'power-calculator-v2.2.0.apk'
+$finalName = 'power-calculator-v2.3.0.apk'
 
 function Fail([string]$Message) {
     Write-Host "ERROR: $Message" -ForegroundColor Red
@@ -87,7 +87,7 @@ Assert-Exit 'aapt2 compile'
 
 Write-Host '[2/7] Linking resources and assets...'
 $unsigned = Join-Path $buildDir 'app-unsigned.apk'
-& $aapt2 link -o $unsigned -I $androidJar --manifest (Join-Path $appDir 'AndroidManifest.xml') -R (Join-Path $buildDir 'res.zip') -A $assetsDir --java $genDir --auto-add-overlay --min-sdk-version 23 --target-sdk-version 34 --version-code 14 --version-name 2.2.0
+& $aapt2 link -o $unsigned -I $androidJar --manifest (Join-Path $appDir 'AndroidManifest.xml') -R (Join-Path $buildDir 'res.zip') -A $assetsDir --java $genDir --auto-add-overlay --min-sdk-version 23 --target-sdk-version 34 --version-code 15 --version-name 2.3.0
 Assert-Exit 'aapt2 link'
 
 # --- Java -> DEX ------------------------------------------------------------

@@ -72,9 +72,9 @@
         <article class="card profile-summary-card">
           <div class="profile-summary-head">
             <div class="profile-summary-copy">
-              <span class="kicker">身体资料</span>
+              <span class="kicker">身体资料 <b class="sex-chip" id="profileSexChip">男</b></span>
               <h3 id="profileSummary">30 岁 · 170 cm · 68 kg</h3>
-              <p>基础代谢按实际年龄计算 · BMI <b id="bmiOut">23.5</b> · <span id="bmiText">正常</span></p>
+              <p>基础代谢按实际年龄和性别计算 · BMI <b id="bmiOut">23.5</b> · <span id="bmiText">正常</span></p>
             </div>
             <button class="ghost-button" id="editProfileButton" type="button">修改</button>
           </div>
@@ -330,8 +330,15 @@
         </button>
       </div>
       <div class="sheet-scroll">
-        <p class="sheet-lead" id="profileLead">身高、体重和年龄只录入一次，之后在「身体资料」里修改。基础代谢会按你的实际年龄计算。</p>
+        <p class="sheet-lead" id="profileLead">性别、年龄、身高和体重只录入一次，之后在「身体资料」里修改。基础代谢会按实际年龄和生理性别计算。</p>
         <div class="profile-form">
+          <div class="profile-field sex-field">
+            <span class="profile-field-label"><b>生理性别</b><small>用于男女基础代谢公式</small></span>
+            <div class="sex-toggle" role="radiogroup" aria-label="生理性别">
+              <button class="sex-option is-active" type="button" data-sex="male" role="radio" aria-checked="true" tabindex="0">男</button>
+              <button class="sex-option" type="button" data-sex="female" role="radio" aria-checked="false" tabindex="-1">女</button>
+            </div>
+          </div>
           <label class="profile-field">
             <span class="profile-field-label"><b>年龄</b><small>实际年龄，用于基础代谢</small></span>
             <span class="profile-input"><input id="profileAge" type="number" inputmode="numeric" min="16" max="80" step="1" value="30" aria-label="年龄"><em>岁</em></span>
@@ -382,13 +389,13 @@
         </button>
       </div>
       <div class="sheet-scroll">
-        <p class="sheet-lead">这个应用把一天里的三层能量放进同一个账本：身体代谢、设备充电与主机用电，以及 WiFi、基站、云服务器、家用电器和出行等周边开销。第一次打开会先录入年龄、身高和体重，之后在「身体资料」里修改；设备、电器和出行子项勾选后才计入。顶部背景仍会在浅色纸面里轻微变化。</p>
+        <p class="sheet-lead">这个应用把一天里的三层能量放进同一个账本：身体代谢、设备充电与主机用电，以及 WiFi、基站、云服务器、家用电器和出行等周边开销。第一次打开会先录入生理性别、年龄、身高和体重，之后在「身体资料」里修改；设备、电器和出行子项勾选后才计入。顶部背景仍会在浅色纸面里轻微变化。</p>
 
         <div class="formula-grid">
           <div class="formula-card">
             <span class="formula-index">01</span>
             <h3>自体</h3>
-            <p>基础代谢依据实际年龄、身高和体重估算，性别取男女平均常数。步数按 100 步/分钟折算活动时长，活动时功率 = 静息功率 × MET，强度可按 0.05 MET 微调。</p>
+            <p>基础代谢依据实际年龄、身高、体重和生理性别估算：男性常数 +5，女性常数 −161。步数按 100 步/分钟折算活动时长，活动时功率 = 静息功率 × MET，强度可按 0.05 MET 微调。</p>
           </div>
           <div class="formula-card">
             <span class="formula-index">02</span>
@@ -404,8 +411,8 @@
 
         <h3 class="section-title">估算口径</h3>
         <dl class="assumptions">
-          <div><dt>基础代谢</dt><dd>10×体重 + 6.25×身高 − 5×年龄 − 78 kcal/天；性别取男女平均常数</dd></div>
-          <div><dt>身体资料</dt><dd>首次录入年龄、身高、体重；之后从顶部齿轮或「修改」进入设置</dd></div>
+          <div><dt>基础代谢</dt><dd>10×体重 + 6.25×身高 − 5×年龄 + 5（男）/ −161（女） kcal/天</dd></div>
+          <div><dt>身体资料</dt><dd>首次录入生理性别、年龄、身高、体重；之后从顶部齿轮或「修改」进入设置</dd></div>
           <div><dt>计入规则</dt><dd>设备、电器、出行子项勾选后才计入；右上角圆圈按「勾选 → 固定 → 取消勾选」循环</dd></div>
           <div><dt>固定调节</dt><dd>每个子卡片右上角点第二次即固定该卡片，卡片内滑条和输入框会冻结；再点一次取消勾选，不会误触其他项</dd></div>
           <div><dt>步数</dt><dd>100 步/分钟；步长 ≈ 0.413 × 身高</dd></div>
@@ -451,7 +458,7 @@
           </button>
           <button class="btn btn-primary" type="button" data-close-modal>完成</button>
         </div>
-        <p class="version">功耗计算器 · v2.2.0 · 离线版</p>
+        <p class="version">功耗计算器 · v2.3.0 · 离线版</p>
       </div>
     </section>
   </div>

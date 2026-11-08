@@ -11,6 +11,7 @@
   var ITEM_LOCKS_KEY = 'powercalc.itemLocks.v1';
   var HISTORY_LIMIT = 730;
   var TABS = ['body', 'device', 'transit', 'overview'];
+  var SEX_LABELS = { male: '男', female: '女' };
   var CORE_DEVICE_KEYS = ['phone', 'earbuds', 'tablet', 'desktop'];
   var EXTRA_DEVICE_KEYS = ['laptop', 'powerbank', 'headphones', 'actioncam', 'camera', 'instax'];
   var CORE_TRIP_KEYS = ['subway', 'ebike'];
@@ -32,6 +33,7 @@
   var state = loadState();
   var profile = loadProfile();
   if (profile.complete) {
+    state.sex = profile.sex;
     state.age = profile.age;
     state.height = profile.height;
     state.weight = profile.weight;
@@ -63,6 +65,8 @@
   var profileAge = document.getElementById('profileAge');
   var profileHeight = document.getElementById('profileHeight');
   var profileWeight = document.getElementById('profileWeight');
+  var sexButtons = Array.prototype.slice.call(document.querySelectorAll('[data-sex]'));
+  var selectedSex = state.sex === 'female' ? 'female' : 'male';
   var closeProfileButton = document.getElementById('closeProfileButton');
   var saveProfileButton = document.getElementById('saveProfileButton');
   var profileSettingsExtra = document.getElementById('profileSettingsExtra');
@@ -110,19 +114,20 @@
   function loadProfile() {
     try {
       var raw = window.localStorage.getItem(PROFILE_KEY);
-      if (!raw) return { complete: false, age: 30, height: 170, weight: 68 };
+      if (!raw) return { complete: false, sex: 'male', age: 30, height: 170, weight: 68 };
       var parsed = JSON.parse(raw);
       if (!parsed || parsed.complete !== true) {
-        return { complete: false, age: 30, height: 170, weight: 68 };
+        return { complete: false, sex: 'male', age: 30, height: 170, weight: 68 };
       }
       return {
         complete: true,
+        sex: parsed.sex === 'female' ? 'female' : 'male',
         age: Math.round(Math.min(80, Math.max(16, Number(parsed.age) || 30))),
         height: Math.round(Math.min(210, Math.max(140, Number(parsed.height) || 170))),
         weight: Math.round(Math.min(120, Math.max(40, Number(parsed.weight) || 68)))
       };
     } catch (error) {
-      return { complete: false, age: 30, height: 170, weight: 68 };
+      return { complete: false, sex: 'male', age: 30, height: 170, weight: 68 };
     }
   }
 
@@ -980,6 +985,7 @@
     setText('restPower', Math.round(data.body.restPowerW));
     setText('activePower', Math.round(data.body.activePowerW));
     setText('activeState', data.body.label + '时 · ' + state.met.toFixed(2) + ' MET');
+    setText('profileSexChip', SEX_LABELS[state.sex]);
     setText('profileSummary', state.age + ' 岁 · ' + state.height + ' cm · ' + state.weight + ' kg');
     setText('bmiOut', data.body.bmi.toFixed(1));
     setText('bmiText', data.body.bmiLabel);
@@ -1284,6 +1290,12 @@
   }
 
   function handleDocumentClick(event) {
+    var sexButton = event.target.closest ? event.target.closest('[data-sex]') : null;
+    if (sexButton) {
+      setSexSelection(sexButton.getAttribute('data-sex'));
+      return;
+    }
+
     var stepPreset = event.target.closest ? event.target.closest('[data-steps]') : null;
     if (stepPreset) {
       var stepValue = Number(stepPreset.getAttribute('data-steps'));
@@ -1358,6 +1370,14 @@
 
   function handleTabKeydown(event) {
     var key = event.key;
+    if (event.target.matches && event.target.matches('[data-sex]') && (key === 'ArrowLeft' || key === 'ArrowRight')) {
+      event.preventDefault();
+      var nextSex = selectedSex === 'male' ? 'female' : 'male';
+      setSexSelection(nextSex);
+      var nextButton = document.querySelector('[data-sex="' + nextSex + '"]');
+      if (nextButton) nextButton.focus();
+      return;
+    }
     if (!event.target.classList.contains('tab')) return;
     if (key !== 'ArrowLeft' && key !== 'ArrowRight' && key !== 'Home' && key !== 'End') return;
     event.preventDefault();
@@ -1372,7 +1392,18 @@
     if (target) target.focus();
   }
 
+  function setSexSelection(sex) {
+    selectedSex = sex === 'female' ? 'female' : 'male';
+    sexButtons.forEach(function (button) {
+      var active = button.getAttribute('data-sex') === selectedSex;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-checked', active ? 'true' : 'false');
+      button.setAttribute('tabindex', active ? '0' : '-1');
+    });
+  }
+
   function fillProfileForm() {
+    setSexSelection(state.sex);
     profileAge.value = state.age;
     profileHeight.value = state.height;
     profileWeight.value = state.weight;
@@ -1390,7 +1421,7 @@
     profileKicker.textContent = onboarding ? 'BEFORE WE START' : 'PROFILE';
     profileTitle.textContent = onboarding ? '先认识一下你' : '身体资料';
     profileLead.textContent = onboarding
-      ? '身高、体重和年龄只录入一次，之后在「身体资料」里修改。基础代谢会按你的实际年龄计算。'
+      ? '性别、年龄、身高和体重只录入一次，之后在「身体资料」里修改。基础代谢会按实际年龄和生理性别计算。'
       : '修改后会立刻重新计算基础代谢与今天的账本；资料只保存在本机。';
     saveProfileButton.textContent = onboarding ? '保存并开始' : '保存修改';
     closeProfileButton.hidden = onboarding;
@@ -1427,15 +1458,18 @@
     var nextAge = Math.round(clamp(Number(profileAge.value) || state.age, 16, 80));
     var nextHeight = Math.round(clamp(Number(profileHeight.value) || state.height, 140, 210));
     var nextWeight = Math.round(clamp(Number(profileWeight.value) || state.weight, 40, 120));
+    var nextSex = selectedSex === 'female' ? 'female' : 'male';
     profileAge.value = nextAge;
     profileHeight.value = nextHeight;
     profileWeight.value = nextWeight;
     profile = {
       complete: true,
+      sex: nextSex,
       age: nextAge,
       height: nextHeight,
       weight: nextWeight
     };
+    state.sex = nextSex;
     state.age = nextAge;
     state.height = nextHeight;
     state.weight = nextWeight;
@@ -1612,6 +1646,9 @@
     resetButton.addEventListener('click', resetAll);
     document.querySelectorAll('.tab').forEach(function (tab) {
       tab.addEventListener('keydown', handleTabKeydown);
+    });
+    sexButtons.forEach(function (button) {
+      button.addEventListener('keydown', handleTabKeydown);
     });
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Enter' && event.target && event.target.matches && event.target.matches('[data-fixed-number]')) {

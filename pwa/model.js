@@ -7,9 +7,11 @@
       kcalPerKwh: 860.421,
       // 1 kcal/day = 4184 J / 86400 s ≈ 0.0484259 W
       kcalPerDayToWatt: 4184 / 86400,
-      // Mifflin-St Jeor 男女平均，按实际年龄：
-      // 10W + 6.25H - 5A - 78 kcal/day（男女常数 +5 / -161 的平均）
-      bmrSexAverageConstant: -78,
+      // Mifflin-St Jeor，按实际年龄和生理性别：
+      // 男：10W + 6.25H - 5A + 5 kcal/day
+      // 女：10W + 6.25H - 5A - 161 kcal/day
+      bmrMaleConstant: 5,
+      bmrFemaleConstant: -161,
       bmrAgeCoefficient: 5,
       strideHeightFactor: 0.00413,
       stepsPerMinute: 100
@@ -208,6 +210,7 @@
   var DEFAULTS = {
     day: '',
     configLocked: false,
+    sex: 'male',
     age: 30,
     height: 170,
     weight: 68,
@@ -264,6 +267,7 @@
     var state = {
       day: /^\d{4}-\d{2}-\d{2}$/.test(String(source.day || '')) ? String(source.day) : defaults.day,
       configLocked: source.configLocked === true,
+      sex: source.sex === 'female' ? 'female' : (source.sex === 'male' ? 'male' : defaults.sex),
       age: Math.round(clamp(numberOr(source.age, defaults.age), 16, 80)),
       height: Math.round(clamp(numberOr(source.height, defaults.height), 140, 210)),
       weight: Math.round(clamp(numberOr(source.weight, defaults.weight), 40, 120)),
@@ -420,9 +424,12 @@
   function calc(rawState) {
     var state = normalizeState(rawState);
 
-    // 自体：年龄、身高、体重决定基础代谢，步数决定活动时长，MET 决定活动强度。
+    // 自体：性别、年龄、身高、体重决定基础代谢，步数决定活动时长，MET 决定活动强度。
+    var sexConstant = state.sex === 'female'
+      ? MODEL.body.bmrFemaleConstant
+      : MODEL.body.bmrMaleConstant;
     var bmrKcal = 10 * state.weight + 6.25 * state.height -
-      MODEL.body.bmrAgeCoefficient * state.age + MODEL.body.bmrSexAverageConstant;
+      MODEL.body.bmrAgeCoefficient * state.age + sexConstant;
     var restPowerW = bmrKcal * MODEL.body.kcalPerDayToWatt;
     var activePowerW = restPowerW * state.met;
     var walkMinutes = state.steps / MODEL.body.stepsPerMinute;

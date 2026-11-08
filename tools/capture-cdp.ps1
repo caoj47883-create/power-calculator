@@ -318,6 +318,20 @@ try {
 
   document.getElementById('settingsButton').click();
   result.settingsOpened=!document.getElementById('profileModal').hidden && !document.getElementById('closeProfileButton').hidden;
+  result.defaultSex=PowerApp.getState().sex;
+  result.sexOptions=document.querySelectorAll('[data-sex]').length;
+  document.querySelector('[data-sex="female"]').click();
+  document.getElementById('saveProfileButton').click();
+  result.femaleSex=PowerApp.getState().sex;
+  result.femaleBmr=PowerModel.calc(PowerApp.getState()).body.bmrKcal.toFixed(1);
+  result.femaleSummary=document.getElementById('profileSummary').textContent;
+  document.getElementById('settingsButton').click();
+  document.querySelector('[data-sex="male"]').click();
+  document.getElementById('saveProfileButton').click();
+  result.maleSex=PowerApp.getState().sex;
+  result.maleBmr=PowerModel.calc(PowerApp.getState()).body.bmrKcal.toFixed(1);
+
+  document.getElementById('settingsButton').click();
   document.getElementById('profileAge').value='31';
   document.getElementById('saveProfileButton').click();
   result.settingsAge=document.getElementById('profileSummary').textContent;
@@ -368,6 +382,7 @@ try {
   document.getElementById('closeProfileButton').click();
 
   result.profileStored=(JSON.parse(localStorage.getItem('powercalc.profile.v1')||'{}').complete===true);
+  result.profileSex=(JSON.parse(localStorage.getItem('powercalc.profile.v1')||'{}').sex||'');
   result.onboardingDismissed=!document.getElementById('profileModal').classList.contains('is-open');
   return result;
 }())

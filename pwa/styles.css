@@ -885,6 +885,23 @@ input[type="range"].range::-moz-range-thumb {
   letter-spacing: 0.1em;
 }
 
+.sex-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(var(--body-rgb), 0.12);
+  color: var(--body);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  vertical-align: 1px;
+}
+
 .profile-summary-copy h3 {
   margin: 6px 0 4px;
   color: var(--ink);
@@ -2285,6 +2302,51 @@ input[type="range"].range::-moz-range-thumb {
   flex-direction: column;
   gap: 3px;
   min-width: 0;
+}
+
+.profile-field.sex-field {
+  align-items: center;
+}
+
+.sex-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+}
+
+.sex-option {
+  min-width: 48px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sex-option:active {
+  transform: scale(0.94);
+}
+
+.sex-option.is-active {
+  background: var(--ink);
+  color: #fffdf8;
+  box-shadow: 0 3px 10px rgba(32, 28, 23, 0.16);
+}
+
+.sex-option:focus-visible {
+  outline: 2px solid rgba(var(--blue-rgb), 0.68);
+  outline-offset: 2px;
 }
 
 .profile-field-label b {

@@ -34,12 +34,19 @@
       var defaults = M.calc(M.DEFAULTS);
 
       equal(M.DEFAULTS.age, 30, 'default age');
-      near(defaults.body.bmrKcal, 1514.5, 0.0001, 'default BMR kcal');
-      near(defaults.body.restPowerW, 73.3411, 0.001, 'default resting power');
-      near(defaults.body.activePowerW, 308.0325, 0.001, 'default active power');
-      near(defaults.body.activityKwh, 0.3129219, 0.00001, 'default step activity energy');
-      near(defaults.body.kwh, 2.0731074, 0.00001, 'default body energy');
-      near(defaults.body.kcal, 1783.75, 0.1, 'default body kcal');
+      near(defaults.body.bmrKcal, 1597.5, 0.0001, 'default male BMR kcal');
+      near(defaults.body.restPowerW, 77.3604, 0.001, 'default male resting power');
+      near(defaults.body.activePowerW, 324.9138, 0.001, 'default male active power');
+      near(defaults.body.activityKwh, 0.3300711, 0.00001, 'default male step activity energy');
+      near(defaults.body.kwh, 2.1867211, 0.00001, 'default male body energy');
+      near(defaults.body.kcal, 1881.5008, 0.1, 'default male body kcal');
+
+      var femaleDefaults = M.calc({ ...M.DEFAULTS, sex: 'female' });
+      near(femaleDefaults.body.bmrKcal, 1431.5, 0.0001, 'female BMR kcal');
+      near(femaleDefaults.body.restPowerW, 69.3217, 0.001, 'female resting power');
+      near(femaleDefaults.body.kwh, 1.9594938, 0.00001, 'female body energy');
+      equal(M.normalizeState({ sex: 'female' }).sex, 'female', 'female sex preserved');
+      equal(M.normalizeState({ sex: 'other' }).sex, 'male', 'invalid sex falls back to male');
       near(defaults.body.distanceKm, 5.6168, 0.00001, 'default walking distance');
       near(defaults.body.walkMinutes, 80, 0.00001, 'default walking minutes');
       near(defaults.body.bmi, 23.5294, 0.0001, 'default BMI');
@@ -86,8 +93,8 @@
       near(defaults.transit.items[0].kwh, 1.05, 0.00001, 'default subway energy');
       near(defaults.transit.items[1].kwh, 0.18, 0.00001, 'default e-bike energy');
 
-      near(defaults.totalKwh, 6.5651663, 0.00001, 'default total energy');
-      near(defaults.averageW, 273.5486, 0.001, 'default average power');
+      near(defaults.totalKwh, 6.6787799, 0.00001, 'default male total energy');
+      near(defaults.averageW, 278.2825, 0.001, 'default male average power');
       equal(defaults.grade, undefined, 'calc itself does not grade');
       var grade = M.evaluateGrade(defaults.transit.kwh);
       equal(grade.level, 1, 'default surrounding grade level');
@@ -129,15 +136,15 @@
 
       var ageState = M.normalizeState(M.DEFAULTS);
       ageState.age = 40;
-      near(M.calc(ageState).body.bmrKcal, 1464.5, 0.0001, 'age 40 BMR');
+      near(M.calc(ageState).body.bmrKcal, 1547.5, 0.0001, 'age 40 male BMR');
       ageState.age = 50;
-      near(M.calc(ageState).body.bmrKcal, 1414.5, 0.0001, 'age 50 BMR');
+      near(M.calc(ageState).body.bmrKcal, 1497.5, 0.0001, 'age 50 male BMR');
 
       var zeroStepsState = M.normalizeState(M.DEFAULTS);
       zeroStepsState.steps = 0;
       var zeroSteps = M.calc(zeroStepsState);
       near(zeroSteps.body.activityKwh, 0, 0.00001, 'zero steps adds no activity energy');
-      near(zeroSteps.body.kwh, 73.3410648 * 24 / 1000, 0.00001, 'zero steps uses resting energy all day');
+      near(zeroSteps.body.kwh, 77.3604167 * 24 / 1000, 0.00001, 'zero steps uses male resting energy all day');
       near(zeroSteps.body.distanceKm, 0, 0.00001, 'zero steps means no walking distance');
 
       var restMetState = M.normalizeState(M.DEFAULTS);
@@ -153,16 +160,16 @@
       var tallerState = M.normalizeState(M.DEFAULTS);
       tallerState.height = 190;
       var taller = M.calc(tallerState);
-      near(taller.body.bmrKcal, 1639.5, 0.0001, 'taller body BMR at 30');
+      near(taller.body.bmrKcal, 1722.5, 0.0001, 'taller male body BMR at 30');
       near(taller.body.distanceKm, 6.2776, 0.00001, 'taller body step distance');
 
       var heavyState = M.normalizeState(M.DEFAULTS);
       heavyState.weight = 90;
-      near(M.calc(heavyState).body.bmrKcal, 1734.5, 0.0001, 'heavier body BMR at 30');
+      near(M.calc(heavyState).body.bmrKcal, 1817.5, 0.0001, 'heavier male body BMR at 30');
 
       var totalEquivalents = M.equivalentsFor(defaults.totalKwh);
-      near(totalEquivalents.coalKg, 0.806465, 0.00001, 'total coal equivalent');
-      near(totalEquivalents.teslaKm, 31.5128, 0.001, 'total Tesla Model X range');
+      near(totalEquivalents.coalKg, 0.8204213, 0.00001, 'total male coal equivalent');
+      near(totalEquivalents.teslaKm, 32.0581, 0.001, 'total male Tesla Model X range');
       near(M.equivalentsFor(0).teslaKm, 0, 0.0000001, 'zero Tesla range');
 
       equal(M.evaluateGrade(0).label, '省电模式', 'zero is power-saving mode');
